@@ -755,6 +755,68 @@ body{letter-spacing:-.01em;line-height:1.6}
   font-weight:700!important;
 }
 
+
+/* ── 3단계 플로우 ── */
+.step-item{display:flex;flex-direction:column;align-items:center;gap:8px}
+.step-circle{
+  width:36px;height:36px;border-radius:50%;
+  background:var(--glass2);border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:14px;font-weight:700;color:var(--text3);transition:all .3s;
+}
+.step-item.active .step-circle{
+  background:linear-gradient(135deg,var(--blue),var(--emerald));
+  border-color:transparent;color:#fff;
+}
+.step-item.done .step-circle{
+  background:var(--emerald);border-color:transparent;color:#fff;
+}
+.step-label{font-size:12px;color:var(--text3);font-weight:500;letter-spacing:-.01em}
+.step-item.active .step-label{color:var(--text);font-weight:600}
+.step-line{
+  width:80px;height:2px;background:var(--border);
+  margin:0 8px;margin-bottom:22px;transition:background .3s;
+  flex-shrink:0;
+}
+.step-line.done{background:var(--emerald)}
+
+/* 법무사 선택 카드 */
+.lw-card{
+  background:var(--glass2);border:2px solid var(--border);
+  border-radius:14px;padding:18px;cursor:pointer;transition:all .22s;
+}
+.lw-card:hover{border-color:var(--blue2);transform:translateY(-2px)}
+.lw-card.selected{
+  border-color:var(--emerald);
+  background:rgba(14,203,124,.07);
+}
+.lwc-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.lwc-av{
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,rgba(27,111,238,.25),rgba(14,203,124,.25));
+  display:flex;align-items:center;justify-content:center;
+  font-size:15px;font-weight:700;color:var(--blue2);
+}
+.lwc-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;letter-spacing:-.02em}
+.lwc-office{font-size:11px;color:var(--text3)}
+.lwc-check{
+  margin-left:auto;width:24px;height:24px;border-radius:50%;
+  background:var(--glass);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;color:transparent;transition:all .2s;flex-shrink:0;
+}
+.lw-card.selected .lwc-check{background:var(--emerald);border-color:var(--emerald);color:#fff}
+.lwc-tag{font-size:10px;padding:2px 8px;border-radius:3px;font-weight:600}
+.lwc-tag.cert{background:rgba(27,111,238,.15);color:var(--blue2)}
+.lwc-tag.top{background:rgba(240,165,0,.15);color:var(--gold)}
+.lwc-tag.new{background:rgba(14,203,124,.12);color:var(--emerald)}
+.lwc-scores{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px}
+.lwc-score{background:var(--glass);border-radius:6px;padding:5px;text-align:center}
+.lwc-sv{font-size:14px;font-weight:700;color:var(--emerald)}
+.lwc-sl{font-size:9px;color:var(--text3);margin-top:1px}
+.lwc-spec{font-size:11.5px;color:var(--text2);margin-bottom:4px;letter-spacing:-.01em}
+.lwc-region{font-size:11px;color:var(--text3)}
+
 </style>
 </head>
 <body>
@@ -862,83 +924,60 @@ body{letter-spacing:-.01em;line-height:1.6}
       </div>
     </div>
 
-    <!-- 인증 랭킹 (지도 자리) -->
-    <div class="gc b-region-map" style="border-color:rgba(240,165,0,.2);background:linear-gradient(135deg,rgba(240,165,0,.07),rgba(27,111,238,.05))">
-      <div class="card-label cl-gold">🏅 등기링크 인증 법무사 랭킹</div>
-      <div class="card-title" style="margin-bottom:4px">이달의 TOP 법무사</div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:14px">실제 이용 고객 평가 · 매월 갱신</div>
+    <!-- 파트너 법무사 -->
+    <div class="gc b-region-map" style="border-color:rgba(27,111,238,.2);background:var(--glass)">
+      <div class="card-label cl-blue">🤝 등기링크 파트너 법무사</div>
+      <div class="card-title" style="margin-bottom:4px">함께하는 법무사</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:16px">파트너 법무사를 소개합니다</div>
 
-      <!-- 1위 강조 -->
-      <div style="background:linear-gradient(135deg,rgba(240,165,0,.12),rgba(27,111,238,.08));border:1px solid rgba(240,165,0,.25);border-radius:12px;padding:14px 16px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#F0A500,#FFC94D);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#3C2000;flex-shrink:0">1</div>
+      <!-- 1번 파트너 (프리미엄) -->
+      <div style="background:linear-gradient(135deg,rgba(27,111,238,.1),rgba(14,203,124,.06));border:1px solid rgba(27,111,238,.25);border-radius:12px;padding:14px 16px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0">인경</div>
           <div style="flex:1">
             <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
               <span style="font-size:14px;font-weight:700;color:var(--text)">김정진 법무사</span>
-              <span style="font-size:10px;background:rgba(240,165,0,.15);color:var(--gold);border:1px solid rgba(240,165,0,.25);padding:1px 7px;border-radius:3px;font-weight:700">동탄 1위</span>
+              <span style="font-size:10px;background:rgba(27,111,238,.15);color:var(--blue2);border:1px solid rgba(27,111,238,.2);padding:1px 7px;border-radius:3px;font-weight:700">파트너</span>
             </div>
-            <div style="font-size:11px;color:var(--text3)">법무사사무소 인경 · 리뷰 47건</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--emerald));-webkit-background-clip:text;-webkit-text-fill-color:transparent">4.8</div>
-            <div style="font-size:10px;color:var(--text3)">/ 5.0</div>
+            <div style="font-size:11px;color:var(--text3)">법무사사무소 인경 (仁敬)</div>
           </div>
         </div>
-        <div style="display:flex;gap:6px;margin-top:10px">
-          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:6px 8px;text-align:center">
-            <div style="font-size:13px;font-weight:700;color:var(--emerald)">4.9</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:1px">친절도</div>
-          </div>
-          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:6px 8px;text-align:center">
-            <div style="font-size:13px;font-weight:700;color:var(--emerald)">4.8</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:1px">처리속도</div>
-          </div>
-          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:6px 8px;text-align:center">
-            <div style="font-size:13px;font-weight:700;color:var(--emerald)">4.7</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:1px">정확성</div>
-          </div>
-          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:6px 8px;text-align:center">
-            <div style="font-size:13px;font-weight:700;color:var(--emerald)">4.8</div>
-            <div style="font-size:9px;color:var(--text3);margin-top:1px">사후대응</div>
-          </div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7;margin-bottom:10px">
+          매매이전 · 상속 · 증여 · 분양전환 전문<br>
+          <span style="color:var(--text3)">📍 화성 동탄 · 수원</span>
         </div>
+        <button onclick="document.getElementById('consult').scrollIntoView({behavior:'smooth'})"
+          style="width:100%;padding:9px;background:linear-gradient(135deg,var(--blue),var(--emerald));color:#fff;border:none;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit">
+          상담 신청하기 →
+        </button>
       </div>
 
-      <!-- 2~5위 가로 정렬 -->
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:2px">
-        <div style="padding:10px 10px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;text-align:center">
-          <div style="width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text2);margin:0 auto 6px">2</div>
-          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">이○○<br>법무사</div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">수원</div>
-          <div style="font-size:15px;font-weight:700;color:var(--blue2)">4.6</div>
-          <div style="font-size:10px;color:var(--emerald);margin-top:2px">▲</div>
+      <!-- 2번 파트너 (스탠다드) -->
+      <div style="background:var(--glass2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:rgba(14,203,124,.15);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--emerald);flex-shrink:0">이</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">이○○ 법무사</div>
+          <div style="font-size:11px;color:var(--text3)">수원 · 매매이전·법인·근저당</div>
         </div>
-        <div style="padding:10px 10px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;text-align:center">
-          <div style="width:24px;height:24px;border-radius:50%;background:rgba(255,100,50,.12);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#FF8060;margin:0 auto 6px">3</div>
-          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">박○○<br>법무사</div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">평택</div>
-          <div style="font-size:15px;font-weight:700;color:var(--blue2)">4.4</div>
-          <div style="font-size:10px;color:var(--emerald);margin-top:2px">▲</div>
-        </div>
-        <div style="padding:10px 10px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;text-align:center">
-          <div style="width:24px;height:24px;border-radius:50%;background:var(--glass);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);margin:0 auto 6px">4</div>
-          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">최○○<br>법무사</div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">용인</div>
-          <div style="font-size:15px;font-weight:700;color:var(--blue2)">4.3</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:2px">—</div>
-        </div>
-        <div style="padding:10px 10px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;text-align:center">
-          <div style="width:24px;height:24px;border-radius:50%;background:var(--glass);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);margin:0 auto 6px">5</div>
-          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">정○○<br>법무사</div>
-          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">오산</div>
-          <div style="font-size:15px;font-weight:700;color:var(--blue2)">4.1</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:2px">—</div>
-        </div>
+        <span style="font-size:10px;background:var(--glass2);color:var(--text3);border:1px solid var(--border);padding:2px 8px;border-radius:3px;font-weight:600;white-space:nowrap">파트너</span>
       </div>
 
-      <div style="margin-top:12px;padding:10px 14px;background:rgba(14,203,124,.06);border:1px solid rgba(14,203,124,.15);border-radius:8px;font-size:11.5px;color:var(--text2);line-height:1.7">
-        💡 랭킹은 <strong style="color:var(--emerald)">처리속도·친절도·정확성·사후대응</strong> 4개 항목 실거래 후기 기반입니다. 좋은 서비스가 자연스럽게 상위 노출됩니다.
+      <!-- 3번 파트너 (스탠다드) -->
+      <div style="background:var(--glass2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px">
+        <div style="width:36px;height:36px;border-radius:50%;background:rgba(240,165,0,.12);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--gold);flex-shrink:0">박</div>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px">박○○ 법무사</div>
+          <div style="font-size:11px;color:var(--text3)">평택 · 매매이전·상속·증여</div>
+        </div>
+        <span style="font-size:10px;background:var(--glass2);color:var(--text3);border:1px solid var(--border);padding:2px 8px;border-radius:3px;font-weight:600;white-space:nowrap">파트너</span>
       </div>
+
+      <!-- 모집 중 -->
+      <div style="border:1px dashed rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;text-align:center">
+        <div style="font-size:11.5px;color:var(--text3);margin-bottom:4px">파트너 모집 중</div>
+        <div style="font-size:10px;color:var(--text3)">제휴 문의 → 상담 신청</div>
+      </div>
+    </div>
     </div>
 
 
@@ -969,65 +1008,53 @@ body{letter-spacing:-.01em;line-height:1.6}
           <div><div class="aav-label">법무사 연결</div><div class="aav-desc">결과 첨부 상담 신청</div></div>
         </div>
       </div>
-      <button class="ai-cta" onclick="window.open('ai-analysis.html','_blank')">무료 AI 분석 시작하기 →</button>
+      <button class="ai-cta" onclick="document.getElementById('consult').scrollIntoView({behavior:'smooth'})">📋 계약서 첨부 상담 신청하기 →</button>
     </div>
 
     </div>
 
-    <!-- 상담 신청 (벤토 인라인) -->
-    <div class="gc" style="grid-column:span 12;background:linear-gradient(135deg,rgba(27,111,238,.12),rgba(14,203,124,.06));border-color:rgba(27,111,238,.25);padding:32px 36px" id="consult">
-      <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:48px;align-items:start">
+    <!-- 상담 신청 3단계 플로우 -->
+    <div class="gc" style="grid-column:span 12;padding:36px 40px" id="consult">
 
-        <!-- 좌측 안내 -->
-        <div>
-          <div class="card-label cl-blue" style="margin-bottom:10px">📋 상담 신청</div>
-          <div style="font-family:'Noto Serif KR',serif;font-size:24px;font-weight:700;color:var(--text);line-height:1.35;margin-bottom:10px;letter-spacing:-.03em">
-            계약서 한 장으로<br>정확한 견적을<br>받아보세요
-          </div>
-          <p style="font-size:13.5px;color:var(--text2);line-height:1.9;font-weight:300;margin-bottom:22px">
-            매매계약서를 첨부하시면<br>담당 법무사가 직접 검토 후<br>견적으로 연락드립니다.
-          </p>
-          <div style="display:flex;flex-direction:column;gap:10px">
-            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)">
-              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">1</div>
-              신청서 + 계약서 제출
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)">
-              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">2</div>
-              법무사가 계약서 검토
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)">
-              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">3</div>
-              견적 + 직접 연락 (보통 당일)
-            </div>
-            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)">
-              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">4</div>
-              고객 ↔ 법무사 직접 계약
-            </div>
-          </div>
+      <!-- 단계 표시 -->
+      <div style="display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:36px">
+        <div class="step-item active" id="si1">
+          <div class="step-circle" id="sc1">1</div>
+          <div class="step-label">기본 정보</div>
         </div>
+        <div class="step-line" id="sl1"></div>
+        <div class="step-item" id="si2">
+          <div class="step-circle" id="sc2">2</div>
+          <div class="step-label">계약서 첨부</div>
+        </div>
+        <div class="step-line" id="sl2"></div>
+        <div class="step-item" id="si3">
+          <div class="step-circle" id="sc3">3</div>
+          <div class="step-label">법무사 선택</div>
+        </div>
+      </div>
 
-        <!-- 우측 폼 -->
-        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:16px;padding:26px">
-          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;letter-spacing:-.02em">상담 신청서</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-            <div style="display:flex;flex-direction:column;gap:5px">
-              <label style="font-size:11px;font-weight:600;color:var(--text3)">이름 *</label>
-              <input type="text" class="cfi" id="cf-name" placeholder="홍길동">
-            </div>
-            <div style="display:flex;flex-direction:column;gap:5px">
-              <label style="font-size:11px;font-weight:600;color:var(--text3)">연락처 *</label>
-              <input type="tel" class="cfi" id="cf-tel" placeholder="010-0000-0000">
-            </div>
-            <div style="display:flex;flex-direction:column;gap:5px">
-              <label style="font-size:11px;font-weight:600;color:var(--text3)">지역 *</label>
+      <!-- STEP 1: 기본 정보 -->
+      <div id="step1">
+        <div style="text-align:center;margin-bottom:28px">
+          <div class="card-label cl-blue" style="justify-content:center;margin-bottom:8px">STEP 1</div>
+          <div style="font-family:'Noto Serif KR',serif;font-size:22px;font-weight:700;color:var(--text)">어떤 등기가 필요하신가요?</div>
+        </div>
+        <div style="max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:14px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="cfg"><label class="cfl">이름 *</label><input type="text" class="cfi" id="cf-name" placeholder="홍길동"></div>
+            <div class="cfg"><label class="cfl">연락처 *</label><input type="tel" class="cfi" id="cf-tel" placeholder="010-0000-0000"></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div class="cfg">
+              <label class="cfl">지역 *</label>
               <select class="cfi" id="cf-region">
                 <option value="">선택하세요</option>
                 <option>화성 동탄</option><option>수원</option><option>오산</option><option>평택</option><option>용인</option>
               </select>
             </div>
-            <div style="display:flex;flex-direction:column;gap:5px">
-              <label style="font-size:11px;font-weight:600;color:var(--text3)">업무 유형 *</label>
+            <div class="cfg">
+              <label class="cfl">업무 유형 *</label>
               <select class="cfi" id="cf-type">
                 <option value="">선택하세요</option>
                 <option>매매 이전등기</option><option>상속등기</option><option>증여등기</option>
@@ -1035,29 +1062,94 @@ body{letter-spacing:-.01em;line-height:1.6}
               </select>
             </div>
           </div>
-          <div class="drop-zone" id="dz" onclick="document.getElementById('fi').click()" style="margin-bottom:10px">
+          <div class="cfg">
+            <label class="cfl">메모 <span style="font-weight:400;color:var(--text3)">(잔금일, 특이사항 등 선택)</span></label>
+            <textarea class="cfi" id="cf-memo" rows="2" placeholder="예: 잔금일 2025.5.4, 대출 있음" style="resize:none;line-height:1.6"></textarea>
+          </div>
+          <button onclick="goStep2()" class="submit-btn" style="margin-top:6px">다음 단계 → 계약서 첨부</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: 계약서 첨부 -->
+      <div id="step2" style="display:none">
+        <div style="text-align:center;margin-bottom:28px">
+          <div class="card-label cl-blue" style="justify-content:center;margin-bottom:8px">STEP 2</div>
+          <div style="font-family:'Noto Serif KR',serif;font-size:22px;font-weight:700;color:var(--text)">계약서를 첨부해주세요</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:6px">법무사가 계약서를 검토 후 정확한 견적을 드립니다</div>
+        </div>
+        <div style="max-width:560px;margin:0 auto">
+          <div class="drop-zone" id="dz" onclick="document.getElementById('fi').click()">
             <div class="dz-icon" id="dz-icon">📄</div>
             <div class="dz-text" id="dz-text">매매계약서 첨부 (필수)</div>
             <div class="dz-sub">클릭 또는 드래그 · PDF·JPG·PNG · 최대 20MB</div>
             <input type="file" id="fi" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFile(this.files[0])">
           </div>
-          <div class="file-ok" id="file-ok">
+          <div class="file-ok" id="file-ok" style="margin-top:10px">
             <span style="font-size:18px">✅</span>
             <span class="fo-name" id="fo-name"></span>
             <button class="fo-rm" onclick="removeFile()">×</button>
           </div>
-          <textarea class="cfi" id="cf-memo" rows="2" placeholder="잔금일, 특이사항 등 (선택)" style="resize:none;margin-bottom:10px;line-height:1.6"></textarea>
-          <button class="submit-btn" id="sub-btn" onclick="submitForm()">상담 신청하기 →</button>
-          <div class="success-msg" id="success-msg">
-            <div class="sm-icon">✅</div>
-            <div class="sm-title">신청 완료!</div>
-            <div class="sm-desc">담당 법무사가 확인 후<br>직접 연락드립니다. (보통 당일)</div>
+          <div style="display:flex;gap:10px;margin-top:16px">
+            <button onclick="goStep1()" style="flex:1;padding:12px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit">← 이전</button>
+            <button onclick="goStep3()" class="submit-btn" style="flex:2">다음 단계 → 법무사 선택</button>
           </div>
-          <div style="margin-top:10px;font-size:10.5px;color:var(--text3);text-align:center;line-height:1.7">
-            소개비 없음 · 플랫폼은 연결만 · 계약은 당사자 간 직접
-          </div>
+          <div style="text-align:center;margin-top:12px;font-size:11px;color:var(--text3)">계약서는 선택한 법무사에게만 전달되며 플랫폼에 저장되지 않습니다</div>
         </div>
       </div>
+
+      <!-- STEP 3: 담당 법무사 배정 (가중 로테이션) -->
+      <div id="step3" style="display:none">
+        <div style="text-align:center;margin-bottom:28px">
+          <div class="card-label cl-blue" style="justify-content:center;margin-bottom:8px">STEP 3</div>
+          <div style="font-family:'Noto Serif KR',serif;font-size:22px;font-weight:700;color:var(--text)">담당 법무사를 확인해주세요</div>
+          <div style="font-size:13px;color:var(--text2);margin-top:6px">업무유형과 지역에 맞는 파트너 법무사가 배정되었습니다</div>
+        </div>
+
+        <div style="max-width:580px;margin:0 auto">
+          <!-- 배정 법무사 카드 -->
+          <div id="assigned-card" style="background:linear-gradient(135deg,rgba(27,111,238,.1),rgba(14,203,124,.06));border:2px solid rgba(27,111,238,.3);border-radius:16px;padding:28px;margin-bottom:16px">
+            <div style="font-size:11px;font-weight:700;color:var(--blue2);letter-spacing:.06em;margin-bottom:14px">🤝 배정된 파트너 법무사</div>
+            <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+              <div id="assigned-av" style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;color:#fff;flex-shrink:0"></div>
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+                  <span id="assigned-name" style="font-size:18px;font-weight:700;color:var(--text)"></span>
+                  <span style="font-size:10px;background:rgba(27,111,238,.15);color:var(--blue2);border:1px solid rgba(27,111,238,.2);padding:2px 8px;border-radius:3px;font-weight:700">파트너</span>
+                </div>
+                <div id="assigned-office" style="font-size:12px;color:var(--text3)"></div>
+              </div>
+            </div>
+            <div id="assigned-spec" style="font-size:13px;color:var(--text2);margin-bottom:8px;line-height:1.7"></div>
+            <div id="assigned-region" style="font-size:12px;color:var(--text3);margin-bottom:16px"></div>
+
+            <!-- 안내 문구 -->
+            <div style="background:rgba(255,255,255,.05);border-radius:10px;padding:12px 14px;font-size:12.5px;color:var(--text2);line-height:1.8">
+              계약서를 검토한 후 <strong style="color:var(--emerald)">당일 내</strong> 직접 연락드립니다.<br>
+              <span style="font-size:11px;color:var(--text3)">소개비 없음 · 보수는 법무사와 직접 협의</span>
+            </div>
+          </div>
+
+          <!-- 다른 법무사 배정 요청 -->
+          <div style="text-align:center;margin-bottom:16px">
+            <button onclick="reAssign()" style="background:none;border:none;font-size:12px;color:var(--text3);cursor:pointer;font-family:inherit;text-decoration:underline;padding:4px">
+              다른 법무사로 배정받기
+            </button>
+          </div>
+
+          <div style="display:flex;gap:10px">
+            <button onclick="goStep2('back')" style="flex:1;padding:12px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;color:var(--text2);font-size:14px;font-weight:500;cursor:pointer;font-family:inherit">← 이전</button>
+            <button onclick="submitForm()" class="submit-btn" id="sub-btn" style="flex:2">이 법무사에게 신청하기 →</button>
+          </div>
+        </div>
+
+        <!-- 완료 메시지 -->
+        <div class="success-msg" id="success-msg">
+          <div class="sm-icon">✅</div>
+          <div class="sm-title">신청 완료!</div>
+          <div class="sm-desc">담당 법무사가 계약서 검토 후<br>직접 연락드립니다. (보통 당일)</div>
+        </div>
+      </div>
+
     </div>
 
     <!-- 서비스 -->
@@ -1289,56 +1381,160 @@ dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
 dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)handleFile(f)});
 
 // 폼 제출
+
+// ── 가중 로테이션 법무사 배정 시스템 ──
+const LAWYERS = [
+  {
+    name: '김정진 법무사', office: '법무사사무소 인경 (仁敬)',
+    av: '인경', spec: '매매이전 · 상속 · 증여 · 분양전환 전문',
+    region: '📍 화성 동탄 · 수원', weight: 4  // 프리미엄
+  },
+  {
+    name: '이○○ 법무사', office: '○○법무사사무소',
+    av: '이', spec: '매매이전 · 법인등기 · 근저당 전문',
+    region: '📍 수원 · 오산', weight: 2  // 스탠다드
+  },
+  {
+    name: '박○○ 법무사', office: '○○법무사사무소',
+    av: '박', spec: '매매이전 · 상속 · 증여 전문',
+    region: '📍 평택 · 용인', weight: 1  // 베이직
+  }
+];
+
+let assignedIdx = -1;
+
+// 가중 랜덤 배정
+function weightedRandom() {
+  const total = LAWYERS.reduce((s, l) => s + l.weight, 0);
+  let rand = Math.random() * total;
+  for (let i = 0; i < LAWYERS.length; i++) {
+    rand -= LAWYERS[i].weight;
+    if (rand <= 0) return i;
+  }
+  return 0;
+}
+
+function assignLawyer() {
+  assignedIdx = weightedRandom();
+  const l = LAWYERS[assignedIdx];
+  document.getElementById('assigned-av').textContent = l.av;
+  document.getElementById('assigned-name').textContent = l.name;
+  document.getElementById('assigned-office').textContent = l.office;
+  document.getElementById('assigned-spec').textContent = l.spec;
+  document.getElementById('assigned-region').textContent = l.region;
+}
+
+// 다른 법무사 재배정 (현재 제외하고 배정)
+function reAssign() {
+  let newIdx = assignedIdx;
+  let tries = 0;
+  while (newIdx === assignedIdx && tries < 10) {
+    newIdx = weightedRandom();
+    tries++;
+  }
+  assignedIdx = newIdx;
+  const l = LAWYERS[assignedIdx];
+  document.getElementById('assigned-av').textContent = l.av;
+  document.getElementById('assigned-name').textContent = l.name;
+  document.getElementById('assigned-office').textContent = l.office;
+  document.getElementById('assigned-spec').textContent = l.spec;
+  document.getElementById('assigned-region').textContent = l.region;
+}
+
+function goStep1(){
+  document.getElementById('step1').style.display='block';
+  document.getElementById('step2').style.display='none';
+  document.getElementById('step3').style.display='none';
+  setStepUI(1);
+}
+
+function goStep2(dir){
+  if(dir !== 'back'){
+    const name=document.getElementById('cf-name').value.trim();
+    const tel=document.getElementById('cf-tel').value.trim();
+    const region=document.getElementById('cf-region').value;
+    const type=document.getElementById('cf-type').value;
+    if(!name){alert('이름을 입력해주세요.');return}
+    if(!tel){alert('연락처를 입력해주세요.');return}
+    if(!region){alert('지역을 선택해주세요.');return}
+    if(!type){alert('업무 유형을 선택해주세요.');return}
+  }
+  document.getElementById('step1').style.display='none';
+  document.getElementById('step2').style.display='block';
+  document.getElementById('step3').style.display='none';
+  setStepUI(2);
+}
+
+function goStep3(){
+  document.getElementById('step1').style.display='none';
+  document.getElementById('step2').style.display='none';
+  document.getElementById('step3').style.display='block';
+  setStepUI(3);
+  assignLawyer(); // 3단계 진입 시 자동 배정
+}
+
+function setStepUI(n){
+  [1,2,3].forEach(i=>{
+    const si=document.getElementById('si'+i);
+    if(!si)return;
+    si.classList.remove('active','done');
+    if(i===n) si.classList.add('active');
+    if(i<n) si.classList.add('done');
+  });
+  [1,2].forEach(i=>{
+    const sl=document.getElementById('sl'+i);
+    if(!sl)return;
+    sl.classList.toggle('done', i<n);
+  });
+}
+
 async function submitForm(){
+  if(assignedIdx < 0){alert('잠시 후 다시 시도해주세요.');return}
   const name=document.getElementById('cf-name').value.trim();
   const tel=document.getElementById('cf-tel').value.trim();
   const region=document.getElementById('cf-region').value;
   const type=document.getElementById('cf-type').value;
   const memo=document.getElementById('cf-memo').value.trim();
-
-  if(!name){alert('이름을 입력해주세요.');return}
-  if(!tel){alert('연락처를 입력해주세요.');return}
-  if(!region){alert('지역을 선택해주세요.');return}
-  if(!type){alert('업무 유형을 선택해주세요.');return}
-  if(!selFile){alert('매매계약서를 첨부해주세요. (필수)');return}
+  const lawyer=LAWYERS[assignedIdx]?LAWYERS[assignedIdx].name:'';
 
   const btn=document.getElementById('sub-btn');
   btn.textContent='전송 중...';
   btn.disabled=true;
 
   try {
-    // 파일 base64 변환
-    const base64 = await new Promise((res,rej)=>{
-      const reader=new FileReader();
-      reader.onload=()=>res(reader.result.split(',')[1]);
-      reader.onerror=rej;
-      reader.readAsDataURL(selFile);
-    });
+    let base64='', fileName='';
+    if(selFile){
+      base64 = await new Promise((res,rej)=>{
+        const reader=new FileReader();
+        reader.onload=()=>res(reader.result.split(',')[1]);
+        reader.onerror=rej;
+        reader.readAsDataURL(selFile);
+      });
+      fileName=selFile.name;
+    }
 
-    const payload = {
-      이름: name,
-      연락처: tel,
-      지역: region,
-      업무유형: type,
-      메모: memo,
-      계약서파일명: selFile.name,
-      계약서: base64
+    const payload={
+      이름:name, 연락처:tel, 지역:region,
+      업무유형:type, 메모:memo,
+      선택법무사:lawyer,
+      계약서파일명:fileName,
+      계약서:base64
     };
 
-    await fetch('https://script.google.com/macros/s/AKfycbzAQ_oqWvBLzPixBYaCfipXSdpGX7d3Afpr8ZyV36pBfU3S0-WPW2YpmqqKIjDWRHwAMw/exec', {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: {'Content-Type': 'text/plain'},
-      body: JSON.stringify(payload)
+    await fetch('https://script.google.com/macros/s/AKfycbzAQ_oqWvBLzPixBYaCfipXSdpGX7d3Afpr8ZyV36pBfU3S0-WPW2YpmqqKIjDWRHwAMw/exec',{
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'text/plain'},
+      body:JSON.stringify(payload)
     });
 
-    // 성공 처리
-    btn.style.display='none';
+    // 완료 처리
+    document.getElementById('assigned-card').style.display='none';
+    document.querySelectorAll('#step3 > div:not(.success-msg)').forEach(el=>el.style.display='none');
     document.getElementById('success-msg').style.display='block';
 
-  } catch(err) {
+  } catch(err){
     alert('오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
-    btn.textContent='상담 신청하기 →';
+    btn.textContent='신청 완료하기 →';
     btn.disabled=false;
   }
 }
