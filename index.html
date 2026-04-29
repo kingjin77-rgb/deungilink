@@ -1,0 +1,1379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>등기링크 |  법무사 플랫폼</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700;800&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css"/>
+<style>
+:root{
+  --bg:#060E1E;
+  --bg2:#0A1628;
+  --bg3:#0F1F3D;
+  --blue:#1B6FEE;
+  --blue2:#3B8FFF;
+  --emerald:#0ECB7C;
+  --emerald2:#26E090;
+  --glass:rgba(255,255,255,.04);
+  --glass2:rgba(255,255,255,.08);
+  --glass3:rgba(255,255,255,.12);
+  --border:rgba(255,255,255,.08);
+  --border2:rgba(255,255,255,.14);
+  --text:#F0F4FF;
+  --text2:rgba(240,244,255,.6);
+  --text3:rgba(240,244,255,.35);
+  --gold:#F0A500;
+  --red:#FF4D6A;
+  --r:16px;
+  --r2:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Pretendard Variable','Pretendard','Noto Sans KR',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── 배경 그라디언트 메쉬 ── */
+.bg-mesh{
+  position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden;
+}
+.bg-mesh::before{
+  content:'';position:absolute;
+  width:800px;height:800px;
+  background:radial-gradient(ellipse,rgba(27,111,238,.18) 0%,transparent 65%);
+  top:-200px;left:-200px;
+  animation:meshFloat 12s ease-in-out infinite alternate;
+}
+.bg-mesh::after{
+  content:'';position:absolute;
+  width:600px;height:600px;
+  background:radial-gradient(ellipse,rgba(14,203,124,.12) 0%,transparent 65%);
+  bottom:-100px;right:-100px;
+  animation:meshFloat 9s ease-in-out infinite alternate-reverse;
+}
+@keyframes meshFloat{0%{transform:translate(0,0) scale(1)}100%{transform:translate(60px,40px) scale(1.1)}}
+
+/* ── 네비 ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:14px 32px;
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(6,14,30,.7);
+  backdrop-filter:blur(20px);
+  border-bottom:1px solid var(--border);
+}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.nav-mark{
+  width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,var(--blue),var(--emerald));
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:#fff;letter-spacing:-.5px;
+}
+.nav-name{font-size:16px;font-weight:700;color:var(--text)}
+.nav-menu{display:flex;gap:4px;list-style:none}
+.nav-menu a{
+  display:block;padding:7px 14px;font-size:13px;
+  color:var(--text2);text-decoration:none;border-radius:8px;
+  transition:all .18s;font-weight:500;
+}
+.nav-menu a:hover{color:var(--text);background:var(--glass2)}
+.nav-cta{
+  background:linear-gradient(135deg,var(--blue),var(--blue2));
+  color:#fff!important;padding:8px 18px!important;border-radius:8px!important;
+  font-weight:600!important;box-shadow:0 4px 20px rgba(27,111,238,.35);
+}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(27,111,238,.5)!important}
+
+/* ── 메인 래퍼 ── */
+main{
+  position:relative;z-index:1;
+  max-width:1160px;margin:0 auto;
+  padding:96px 24px 80px;
+}
+
+/* ── AI 에이전틱 히어로 ── */
+.hero{margin-bottom:48px}
+.hero-eyebrow{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--glass2);border:1px solid var(--border2);
+  border-radius:20px;padding:5px 14px;
+  font-size:11px;font-weight:600;color:var(--emerald);
+  letter-spacing:.06em;text-transform:uppercase;margin-bottom:20px;
+}
+.hero-eyebrow::before{
+  content:'';width:6px;height:6px;border-radius:50%;
+  background:var(--emerald);
+  animation:blink 1.8s infinite;
+}
+@keyframes blink{0%,100%{opacity:1;box-shadow:0 0 6px var(--emerald)}50%{opacity:.3;box-shadow:none}}
+.hero-title{
+  font-family:'Noto Serif KR',serif;
+  font-size:clamp(32px,5vw,58px);
+  line-height:1.15;letter-spacing:-.02em;
+  margin-bottom:16px;
+}
+.hero-title .t-blue{color:var(--blue2)}
+.hero-title .t-em{font-style:italic;color:var(--emerald)}
+.hero-desc{
+  font-size:15px;color:var(--text2);line-height:1.85;
+  max-width:560px;margin-bottom:32px;font-weight:300;
+}
+
+/* AI 추천 인터페이스 */
+.ai-bar{
+  background:var(--glass);
+  border:1px solid var(--border2);
+  border-radius:14px;
+  padding:6px 6px 6px 18px;
+  display:flex;align-items:center;gap:10px;
+  max-width:640px;
+  box-shadow:0 0 40px rgba(27,111,238,.12);
+}
+.ai-icon{font-size:18px;flex-shrink:0}
+.ai-input{
+  flex:1;background:none;border:none;outline:none;
+  font-size:14px;color:var(--text);
+  font-family:'Pretendard Variable','Pretendard','Noto Sans KR',sans-serif;
+  padding:10px 0;
+}
+.ai-input::placeholder{color:var(--text3)}
+.ai-sep{width:1px;height:28px;background:var(--border);flex-shrink:0}
+.ai-select{
+  background:none;border:none;outline:none;
+  font-size:13px;color:var(--text2);
+  font-family:'Pretendard Variable','Pretendard','Noto Sans KR',sans-serif;padding:0 12px;cursor:pointer;
+  -webkit-appearance:none;
+}
+
+.ai-btn{
+  background:linear-gradient(135deg,var(--blue),var(--emerald));
+  color:#fff;border:none;padding:11px 20px;border-radius:10px;
+  font-size:13px;font-weight:700;cursor:pointer;
+  font-family:'Pretendard Variable','Pretendard','Noto Sans KR',sans-serif;
+  white-space:nowrap;transition:all .2s;
+  box-shadow:0 4px 16px rgba(27,111,238,.3);
+}
+.ai-btn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(27,111,238,.45)}
+.ai-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.chip{
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:20px;padding:5px 14px;font-size:12px;
+  color:var(--text2);cursor:pointer;transition:all .18s;
+}
+.chip:hover{border-color:var(--blue2);color:var(--blue2);background:rgba(59,143,255,.08)}
+
+/* ── 벤토 그리드 ── */
+.bento{
+  display:grid;
+  grid-template-columns:repeat(12,1fr);
+  grid-auto-rows:auto;
+  gap:12px;
+  margin-bottom:48px;
+}
+
+/* 글래스 카드 공통 */
+.gc{
+  background:var(--glass);
+  border:1px solid var(--border);
+  border-radius:var(--r2);
+  padding:24px;
+  position:relative;overflow:hidden;
+  transition:border-color .22s,transform .22s,box-shadow .22s;
+  backdrop-filter:blur(12px);
+}
+.gc:hover{
+  border-color:var(--border2);
+  transform:translateY(-2px);
+  box-shadow:0 16px 48px rgba(0,0,0,.3);
+}
+.gc::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,.03) 0%,transparent 60%);
+  pointer-events:none;border-radius:inherit;
+}
+
+/* 그리드 배치 */
+.b-ai-recommend{grid-column:span 7}
+.b-region-map{grid-column:span 5}
+.b-stat1{grid-column:span 3}
+.b-stat2{grid-column:span 3}
+.b-stat3{grid-column:span 3}
+.b-stat4{grid-column:span 3}
+.b-process{grid-column:span 12}
+
+
+.b-ai-analysis{grid-column:span 12}
+
+.b-services{grid-column:span 12}
+
+/* 카드별 강조 */
+.b-ai-recommend{
+  background:linear-gradient(135deg,rgba(27,111,238,.15),rgba(14,203,124,.08));
+  border-color:rgba(27,111,238,.3);
+}
+.b-ai-analysis{
+  background:linear-gradient(135deg,rgba(14,203,124,.1),rgba(27,111,238,.06));
+  border-color:rgba(14,203,124,.25);
+}
+
+/* 카드 레이블 */
+.card-label{
+  font-size:10px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;margin-bottom:8px;
+  display:flex;align-items:center;gap:6px;
+}
+.cl-blue{color:var(--blue2)}
+.cl-em{color:var(--emerald)}
+.cl-gold{color:var(--gold)}
+.cl-muted{color:var(--text3)}
+.card-title{
+  font-size:17px;font-weight:700;color:var(--text);
+  margin-bottom:6px;line-height:1.35;
+}
+.card-desc{font-size:12.5px;color:var(--text2);line-height:1.75;font-weight:300}
+
+/* ── AI 추천 카드 ── */
+.ai-rec-wrap{margin-top:16px}
+.ai-rec-question{
+  font-size:13px;color:var(--text2);margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.ai-rec-question::before{content:'🤖';font-size:15px}
+.situation-btns{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.sit-btn{
+  background:var(--glass2);border:1px solid var(--border2);
+  border-radius:8px;padding:8px 14px;font-size:12.5px;
+  color:var(--text2);cursor:pointer;transition:all .18s;
+  font-family:'Pretendard Variable','Pretendard','Noto Sans KR',sans-serif;font-weight:500;
+}
+.sit-btn:hover,.sit-btn.on{
+  background:rgba(27,111,238,.2);border-color:var(--blue2);color:var(--blue2);
+}
+.ai-result{
+  background:rgba(14,203,124,.07);border:1px solid rgba(14,203,124,.2);
+  border-radius:12px;padding:14px 16px;
+  font-size:13px;color:var(--text);line-height:1.8;
+  display:none;
+}
+.ai-result.show{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.ai-result-label{
+  font-size:10px;font-weight:700;color:var(--emerald);
+  letter-spacing:.08em;margin-bottom:6px;
+}
+.ai-match-cards{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.ai-match-card{
+  background:var(--glass2);border:1px solid var(--border);
+  border-radius:10px;padding:10px 12px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.amc-left{display:flex;align-items:center;gap:10px}
+.amc-av{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,var(--blue),var(--emerald));
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:#fff;flex-shrink:0;
+}
+.amc-name{font-size:13px;font-weight:600;color:var(--text)}
+.amc-svc{font-size:11px;color:var(--text3);margin-top:1px}
+.amc-score{
+  font-size:13px;font-weight:700;color:var(--emerald);
+  display:flex;align-items:center;gap:4px;
+}
+
+/* ── 지역 지도 카드 ── */
+.map-area{margin-top:14px;position:relative}
+.map-svg-wrap{width:100%;height:180px;position:relative}
+.region-dots{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.rdot{
+  display:flex;align-items:center;gap:6px;
+  font-size:12px;color:var(--text2);cursor:pointer;
+  padding:5px 10px;border-radius:8px;border:1px solid var(--border);
+  background:var(--glass);transition:all .18s;
+}
+.rdot:hover,.rdot.on{border-color:var(--blue2);color:var(--blue2);background:rgba(27,111,238,.1)}
+.rdot-dot{width:7px;height:7px;border-radius:50%;background:var(--blue2);flex-shrink:0}
+.rdot.on .rdot-dot{background:var(--emerald);box-shadow:0 0 8px var(--emerald)}
+
+/* ── 통계 카드 ── */
+.stat-num{
+  font-family:'Noto Serif KR',serif;
+  font-size:38px;line-height:1;margin-bottom:4px;
+}
+.stat-num.blue{
+  background:linear-gradient(135deg,var(--blue2),var(--emerald));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.stat-label{font-size:12px;color:var(--text3);font-weight:400}
+.stat-change{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;margin-top:8px;padding:3px 8px;border-radius:4px;font-weight:600;
+}
+.sc-up{background:rgba(14,203,124,.12);color:var(--emerald)}
+.sc-dn{background:rgba(255,77,106,.12);color:var(--red)}
+
+/* ── 절차 카드 ── */
+.process-steps{
+  display:grid;grid-template-columns:repeat(5,1fr);
+  gap:0;margin-top:16px;position:relative;
+}
+.process-steps::before{
+  content:'';position:absolute;
+  top:24px;left:12%;right:12%;height:1px;
+  background:linear-gradient(90deg,var(--blue),var(--emerald));
+  z-index:0;
+}
+.ps-item{text-align:center;position:relative;z-index:1;padding:0 8px}
+.ps-circle{
+  width:48px;height:48px;border-radius:50%;
+  background:var(--bg2);border:2px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;margin:0 auto 10px;transition:all .2s;
+}
+.ps-item:hover .ps-circle{
+  border-color:var(--blue2);
+  box-shadow:0 0 20px rgba(27,111,238,.3);
+}
+.ps-num{
+  position:absolute;top:-4px;right:calc(50% - 28px);
+  width:16px;height:16px;border-radius:50%;
+  background:linear-gradient(135deg,var(--blue),var(--emerald));
+  font-size:9px;font-weight:700;color:#fff;
+  display:flex;align-items:center;justify-content:center;
+}
+.ps-title{font-size:11.5px;font-weight:600;color:var(--text);margin-bottom:3px}
+.ps-desc{font-size:10px;color:var(--text3);line-height:1.5}
+
+/* ── 법무사 TOP 카드 ── */
+.lawyer-top-card{
+  background:var(--glass2);border:1px solid var(--border2);
+  border-radius:12px;padding:14px;margin-top:12px;
+}
+.ltc-head{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.ltc-av{
+  width:44px;height:44px;border-radius:50%;
+  background:linear-gradient(135deg,rgba(27,111,238,.3),rgba(14,203,124,.3));
+  border:2px solid rgba(27,111,238,.4);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:700;color:var(--blue2);flex-shrink:0;
+}
+.ltc-name{font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px}
+.ltc-office{font-size:11px;color:var(--text3)}
+.ltc-badges{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px}
+.ltc-badge{
+  font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600;
+}
+.lb-cert{background:rgba(27,111,238,.15);color:var(--blue2);border:1px solid rgba(27,111,238,.2)}
+.lb-top{background:rgba(240,165,0,.12);color:var(--gold);border:1px solid rgba(240,165,0,.2)}
+.score-row{display:flex;gap:6px}
+.sr-item{flex:1;background:var(--glass);border-radius:8px;padding:6px 8px;text-align:center}
+.sr-val{font-size:14px;font-weight:700;color:var(--emerald)}
+.sr-label{font-size:9px;color:var(--text3);margin-top:1px}
+.ltc-btns{display:flex;gap:8px;margin-top:12px}
+.ltc-btn{
+  flex:1;padding:9px;border-radius:8px;font-size:12px;font-weight:600;
+  cursor:pointer;font-family:'Pretendard Variable','Pretendard','Noto Sans KR',sans-serif;border:none;transition:all .18s;
+}
+.btn-call{background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff}
+.btn-kakao{background:#FAE100;color:#3C1E1E}
+
+/* ── AI 분석 카드 ── */
+.ai-analysis-visual{
+  margin-top:14px;
+  display:flex;flex-direction:column;gap:10px;
+}
+.aav-step{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--glass2);border:1px solid var(--border);border-radius:10px;
+}
+.aav-icon{font-size:18px;flex-shrink:0;width:28px;text-align:center}
+.aav-label{font-size:12.5px;font-weight:500;color:var(--text)}
+.aav-desc{font-size:11px;color:var(--text3);margin-top:1px}
+.aav-arrow{margin-left:auto;font-size:12px;color:var(--text3)}
+.ai-cta{
+  margin-top:12px;width:100%;padding:11px;
+  background:rgba(14,203,124,.12);border:1px solid rgba(14,203,124,.25);
+  color:var(--emerald);border-radius:9px;font-size:13px;font-weight:700;
+  cursor:pointer;font-family:'Pretendard Variable','Pretendard','Noto Sans KR',sans-serif;transition:all .18s;
+}
+.ai-cta:hover{background:rgba(14,203,124,.2)}
+
+/* ── 랭킹 카드 ── */
+.rank-list{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.rl-item{
+  display:flex;align-items:center;gap:10px;padding:10px 12px;
+  background:var(--glass2);border:1px solid var(--border);border-radius:10px;
+  cursor:pointer;transition:all .18s;
+}
+.rl-item:hover{border-color:var(--border2)}
+.rl-rank{
+  width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;flex-shrink:0;
+}
+.rr1{background:linear-gradient(135deg,var(--gold),#FFC94D);color:#3C2000}
+.rr2{background:rgba(255,255,255,.15);color:var(--text)}
+.rr3{background:rgba(255,100,50,.15);color:#FF8060}
+.rl-name{font-size:13px;font-weight:600;color:var(--text);flex:1}
+.rl-region{font-size:10px;color:var(--text3)}
+.rl-score{
+  font-size:13px;font-weight:700;
+  background:linear-gradient(135deg,var(--blue2),var(--emerald));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+
+/* ── 서비스 그리드 ── */
+.services-grid{
+  display:grid;grid-template-columns:repeat(6,1fr);
+  gap:10px;margin-top:14px;
+}
+.svc-item{
+  background:var(--glass2);border:1px solid var(--border);
+  border-radius:12px;padding:16px 14px;cursor:pointer;transition:all .18s;
+  text-align:center;
+}
+.svc-item:hover{border-color:var(--blue2);background:rgba(27,111,238,.08)}
+.svc-emoji{font-size:22px;margin-bottom:8px}
+.svc-name{font-size:11.5px;font-weight:600;color:var(--text);line-height:1.4}
+
+/* ── 상담 신청 섹션 ── */
+.consult-section{
+  background:linear-gradient(135deg,rgba(27,111,238,.1),rgba(14,203,124,.06));
+  border:1px solid rgba(27,111,238,.2);
+  border-radius:var(--r2);padding:40px;margin-bottom:48px;
+  display:grid;grid-template-columns:1fr 1.2fr;gap:48px;align-items:start;
+}
+.cs-left{}
+.cs-eyebrow{
+  font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--blue2);
+  text-transform:uppercase;margin-bottom:10px;
+}
+.cs-title{
+  font-family:'Noto Serif KR',serif;
+  font-size:26px;line-height:1.3;margin-bottom:10px;color:var(--text);
+}
+.cs-desc{font-size:13.5px;color:var(--text2);line-height:1.85;font-weight:300;margin-bottom:24px}
+.cs-steps{display:flex;flex-direction:column;gap:10px}
+.css-item{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--text2)}
+.css-num{
+  width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,var(--blue),var(--emerald));
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;color:#fff;
+}
+
+/* 폼 */
+.cf-wrap{
+  background:var(--glass);border:1px solid var(--border2);
+  border-radius:var(--r);padding:28px;
+}
+.cf-title{font-size:14px;font-weight:700;color:var(--text);margin-bottom:18px}
+.cf-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.cfg{display:flex;flex-direction:column;gap:5px}
+.cfl{font-size:11px;font-weight:600;color:var(--text3)}
+.cfi{
+  background:var(--glass2);border:1px solid var(--border);border-radius:8px;
+  padding:10px 12px;font-size:13px;color:var(--text);
+  font-family:'Pretendard Variable','Pretendard','Noto Sans KR',sans-serif;outline:none;transition:border-color .18s;width:100%;
+}
+.cfi:focus{border-color:var(--blue2)}
+.cfi option{background:var(--bg2)}
+
+/* 파일 드롭 */
+.drop-zone{
+  border:2px dashed rgba(27,111,238,.3);border-radius:10px;
+  padding:24px;text-align:center;cursor:pointer;transition:all .22s;
+  margin-bottom:12px;
+}
+.drop-zone:hover,.drop-zone.drag{
+  border-color:var(--blue2);
+  background:rgba(27,111,238,.06);
+}
+.drop-zone.has-file{border-color:var(--emerald);background:rgba(14,203,124,.05)}
+.dz-icon{font-size:28px;margin-bottom:8px}
+.dz-text{font-size:13px;font-weight:600;color:var(--text2);margin-bottom:4px}
+.dz-sub{font-size:11px;color:var(--text3)}
+.file-ok{
+  display:none;align-items:center;gap:10px;
+  background:rgba(14,203,124,.08);border:1px solid rgba(14,203,124,.2);
+  border-radius:8px;padding:10px 14px;margin-bottom:12px;
+}
+.file-ok.show{display:flex}
+.fo-name{font-size:12.5px;color:var(--emerald);flex:1;font-weight:500}
+.fo-rm{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer}
+.submit-btn{
+  width:100%;padding:14px;
+  background:linear-gradient(135deg,var(--blue),var(--emerald));
+  color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;
+  cursor:pointer;font-family:'Pretendard Variable','Pretendard','Noto Sans KR',sans-serif;transition:all .2s;
+  box-shadow:0 4px 20px rgba(27,111,238,.3);
+}
+.submit-btn:hover{transform:translateY(-1px);box-shadow:0 6px 28px rgba(27,111,238,.45)}
+.submit-btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.success-msg{display:none;text-align:center;padding:20px 0}
+.sm-icon{font-size:40px;margin-bottom:10px}
+.sm-title{font-size:16px;font-weight:700;color:var(--emerald);margin-bottom:6px}
+.sm-desc{font-size:13px;color:var(--text2);line-height:1.7}
+
+/* ── FAQ ── */
+.faq-wrap{margin-bottom:48px}
+.faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.faq-item{
+  background:var(--glass);border:1px solid var(--border);
+  border-radius:14px;overflow:hidden;
+}
+.faq-q{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:16px 20px;cursor:pointer;font-size:13.5px;font-weight:600;
+  color:var(--text);transition:background .18s;gap:12px;
+}
+.faq-q:hover{background:var(--glass2)}
+.faq-q-icon{font-size:16px;color:var(--text3);flex-shrink:0;transition:transform .22s}
+.faq-item.open .faq-q-icon{transform:rotate(45deg);color:var(--blue2)}
+.faq-a{
+  display:none;padding:0 20px 16px;
+  font-size:13px;color:var(--text2);line-height:1.85;
+  border-top:1px solid var(--border);
+}
+.faq-item.open .faq-a{display:block;padding-top:14px}
+
+/* ── 면책 + 푸터 ── */
+.disclaimer{
+  text-align:center;font-size:11px;color:var(--text3);
+  line-height:1.9;padding:20px;background:var(--glass);
+  border:1px solid var(--border);border-radius:12px;margin-bottom:32px;
+}
+footer{
+  border-top:1px solid var(--border);padding:32px 0;
+  display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px;
+}
+.ft-brand{
+  font-family:'Noto Serif KR',serif;font-size:18px;
+  color:var(--text);margin-bottom:8px;
+}
+.ft-desc{font-size:12px;color:var(--text3);line-height:1.8}
+.ft-col h5{font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.06em;margin-bottom:12px;text-transform:uppercase}
+.ft-col ul{list-style:none;display:flex;flex-direction:column;gap:8px}
+.ft-col a{font-size:12.5px;color:var(--text3);text-decoration:none;transition:color .18s}
+.ft-col a:hover{color:var(--blue2)}
+.ft-bottom{padding-top:24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--text3);margin-top:24px}
+
+/* 반응형 */
+@media(max-width:900px){
+  .b-ai-recommend,.b-region-map,.b-stat1,.b-stat2,.b-stat3,.b-stat4,
+  .b-process,.b-calc,.b-ai-analysis,.b-services{grid-column:span 12}
+  .process-steps{grid-template-columns:1fr 1fr 1fr}
+  .process-steps::before{display:none}
+  .services-grid{grid-template-columns:repeat(3,1fr)}
+  .consult-section{grid-template-columns:1fr}
+  .faq-grid{grid-template-columns:1fr}
+  footer{grid-template-columns:1fr 1fr}
+  nav .nav-menu{display:none}
+}
+@media(max-width:480px){
+  .bento{gap:8px}
+  .gc{padding:18px}
+  .services-grid{grid-template-columns:repeat(2,1fr)}
+  .cf-grid{grid-template-columns:1fr}
+}
+
+/* 애니메이션 */
+@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.hero>*{animation:slideUp .5s ease both}
+.hero>*:nth-child(1){animation-delay:.05s}
+.hero>*:nth-child(2){animation-delay:.12s}
+.hero>*:nth-child(3){animation-delay:.2s}
+.hero>*:nth-child(4){animation-delay:.28s}
+
+/* ── 고객 UX 최적화 ── */
+/* 가독성 향상 */
+body{letter-spacing:-.01em;line-height:1.6}
+.hero-title{letter-spacing:-.03em}
+.card-title{font-size:16px;font-weight:700;letter-spacing:-.02em}
+.card-desc{font-size:13px}
+
+/* 네비 메뉴 한글 최적화 */
+.nav-name{letter-spacing:-.02em;font-weight:800}
+.nav-menu a{letter-spacing:-.01em}
+
+/* AI 바 고객 친화 */
+.ai-bar{border-radius:16px;padding:8px 8px 8px 20px;gap:8px}
+.ai-input{font-size:14px;letter-spacing:-.01em}
+.ai-btn{border-radius:12px;font-size:14px;padding:12px 22px;letter-spacing:-.01em}
+
+/* 칩 가독성 */
+.chip{font-size:12.5px;padding:7px 16px;border-radius:22px;letter-spacing:-.01em;font-weight:500}
+
+/* 카드 레이블 */
+.card-label{font-size:11px;letter-spacing:.04em;font-weight:700}
+
+/* 상황 버튼 */
+.sit-btn{font-size:13px;padding:9px 16px;border-radius:10px;letter-spacing:-.01em;font-weight:600}
+
+/* 서비스 그리드 */
+.svc-name{font-size:12px;font-weight:600;letter-spacing:-.01em;margin-top:2px}
+
+/* 법무사 카드 */
+.ltc-name{font-size:15px;letter-spacing:-.02em}
+.ltc-office{font-size:12px;color:rgba(240,244,255,.5)}
+.ltc-btn{letter-spacing:-.01em;font-size:13px;font-weight:700;padding:11px}
+
+/* 계산기 */
+.ci-label{font-size:12px;letter-spacing:-.01em;font-weight:600}
+.ci-input{font-size:14px;letter-spacing:-.01em;padding:11px 14px}
+
+/* 상담 폼 */
+.cs-title{font-size:28px;letter-spacing:-.03em;line-height:1.25}
+.cs-desc{font-size:14px;line-height:1.9}
+.css-item{font-size:13.5px;letter-spacing:-.01em;font-weight:500}
+.cf-title{font-size:15px;font-weight:700;letter-spacing:-.02em}
+.cfl{font-size:12px;font-weight:600;letter-spacing:-.01em}
+.cfi{font-size:14px;letter-spacing:-.01em;padding:11px 14px}
+.submit-btn{font-size:15px;letter-spacing:-.01em;padding:15px;border-radius:12px}
+
+/* 드롭존 */
+.dz-text{font-size:14px;font-weight:700;letter-spacing:-.02em}
+.dz-sub{font-size:12px;letter-spacing:-.01em}
+
+/* FAQ */
+.faq-q{font-size:14px;letter-spacing:-.02em;font-weight:600;line-height:1.5}
+.faq-a{font-size:13.5px;letter-spacing:-.01em;line-height:1.9;padding-top:12px}
+
+/* 랭킹 */
+.rl-name{font-size:13.5px;letter-spacing:-.02em;font-weight:700}
+.rl-region{font-size:11px;letter-spacing:-.01em}
+
+/* 절차 */
+.ps-title{font-size:12px;letter-spacing:-.02em;font-weight:700}
+.ps-desc{font-size:11px;letter-spacing:-.01em}
+
+/* 통계 */
+.stat-num{font-size:36px}
+.stat-label{font-size:13px;letter-spacing:-.01em}
+.stat-change{font-size:12px}
+
+/* 면책 */
+.disclaimer{font-size:11.5px;letter-spacing:-.01em;line-height:2}
+
+/* AI 매치카드 */
+.amc-name{font-size:13.5px;font-weight:700;letter-spacing:-.02em}
+.amc-svc{font-size:11px;letter-spacing:-.01em}
+
+/* AI 분석 스텝 */
+.aav-label{font-size:13px;font-weight:700;letter-spacing:-.02em}
+.aav-desc{font-size:11.5px;letter-spacing:-.01em}
+
+/* 히어로 통계 */
+.hero-desc{font-size:15px;letter-spacing:-.01em;line-height:1.9}
+.hero-eyebrow{font-size:12px;letter-spacing:.04em}
+
+/* CTA 버튼 강조 */
+.ai-cta{font-size:14px;padding:13px;letter-spacing:-.01em;border-radius:10px}
+.calc-cta{font-size:14px;padding:13px;letter-spacing:-.01em;border-radius:10px}
+
+/* 푸터 */
+.ft-brand{letter-spacing:-.02em}
+.ft-desc{font-size:12.5px;letter-spacing:-.01em;line-height:1.9}
+.ft-col h5{letter-spacing:.04em}
+.ft-col a{font-size:13px;letter-spacing:-.01em}
+.ft-bottom{font-size:12px;letter-spacing:-.01em}
+
+/* 성공 메시지 */
+.sm-title{font-size:17px;font-weight:800;letter-spacing:-.02em}
+.sm-desc{font-size:14px;letter-spacing:-.01em;line-height:1.8}
+
+
+/* 신뢰 배지 한 줄 */
+.trust-badges{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px}
+.tbadge{
+  display:inline-flex;align-items:center;gap:5px;
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:20px;padding:6px 14px;
+  font-size:12.5px;color:rgba(240,244,255,.75);font-weight:500;
+}
+.tbadge-gold{
+  background:rgba(240,165,0,.12);
+  border-color:rgba(240,165,0,.35);
+  color:var(--gold);font-weight:700;
+}
+
+
+/* ── 플로팅 견적 신청 버튼 ── */
+.float-cta{
+  position:fixed;
+  bottom:24px;right:20px;
+  z-index:200;
+  transition:transform .25s,opacity .25s;
+}
+.float-cta button{
+  display:flex;align-items:center;gap:8px;
+  background:linear-gradient(135deg,var(--blue),var(--emerald));
+  color:#fff;border:none;
+  padding:13px 20px;border-radius:50px;
+  font-size:14px;font-weight:700;
+  cursor:pointer;
+  font-family:'Pretendard Variable','Pretendard','Noto Sans KR',sans-serif;
+  box-shadow:0 6px 28px rgba(27,111,238,.45),0 2px 8px rgba(0,0,0,.3);
+  letter-spacing:-.02em;
+  transition:all .2s;
+  white-space:nowrap;
+}
+.float-cta button:hover{
+  transform:translateY(-2px);
+  box-shadow:0 10px 36px rgba(27,111,238,.55),0 4px 12px rgba(0,0,0,.3);
+}
+.float-icon{font-size:16px}
+.float-badge{
+  background:rgba(255,255,255,.25);
+  border-radius:20px;padding:2px 8px;
+  font-size:11px;font-weight:700;
+}
+/* 스크롤 내려가면 숨기기 (상담폼 보일 때) */
+.float-cta.hide{
+  transform:translateY(80px);
+  opacity:0;pointer-events:none;
+}
+
+/* 데스크탑에서도 우측 하단 표시 (네비에도 있지만 스크롤 시 편의) */
+@media(min-width:901px){
+  .float-cta{bottom:32px;right:32px}
+  .float-cta button{padding:14px 24px;font-size:14px}
+}
+
+/* 네비 견적 신청 버튼 강조 */
+.nav-cta{
+  background:linear-gradient(135deg,var(--blue),var(--emerald))!important;
+  box-shadow:0 3px 14px rgba(27,111,238,.35)!important;
+  font-weight:700!important;
+}
+
+</style>
+</head>
+<body>
+<div class="bg-mesh"></div>
+
+<!-- 네비 -->
+<nav>
+  <a class="nav-logo" href="#">
+    <div class="nav-mark">등기</div>
+    <span class="nav-name">등기링크</span>
+  </a>
+  <ul class="nav-menu">
+    <li><a href="#bento">서비스</a></li>
+    <li><a href="#consult">상담 신청</a></li>
+    <li><a href="#faq">FAQ</a></li>
+    <li><a href="#consult" class="nav-cta" onclick="document.getElementById('consult').scrollIntoView({behavior:'smooth'});return false">📋 견적 신청</a></li>
+  </ul>
+</nav>
+
+<main>
+
+  <!-- 히어로 -->
+  <div class="hero">
+    <div class="hero-eyebrow">동탄 · 수원 · 오산 · 평택 · 용인</div>
+    <h1 class="hero-title">
+      잔금일 전에,<br>
+      <span class="t-blue">믿을 법무사</span>를<br>
+      찾으셨나요?
+    </h1>
+    <p class="hero-desc">
+      계약서를 올리면 AI가 먼저 확인하고<br>
+      담당 법무사가 정확한 견적으로 직접 연락드립니다.
+    </p>
+    <div class="trust-badges">
+      <span class="tbadge tbadge-gold">🔒 소개비 0원</span>
+      <span class="tbadge">✓ 인증 법무사</span>
+      <span class="tbadge">✓ AI 계약서 분석 무료</span>
+      <span class="tbadge">✓ 법적 안전 구조</span>
+    </div>
+    <div class="ai-bar">
+      <span class="ai-icon">🤖</span>
+      <input class="ai-input" placeholder="어떤 등기가 필요하세요? 상황을 말씀해주세요..." id="ai-input">
+
+      <button class="ai-btn" onclick="aiSearch()">AI 추천 →</button>
+    </div>
+    <div class="ai-chips">
+      <span class="chip" onclick="setChip(this,'아파트 매매 잔금일이 다음주입니다')">🏠 아파트 매매등기</span>
+      <span class="chip" onclick="setChip(this,'부모님이 돌아가셔서 상속등기가 필요합니다')">📋 상속등기</span>
+      <span class="chip" onclick="setChip(this,'자녀에게 부동산을 증여하려 합니다')">🤝 증여등기</span>
+      <span class="chip" onclick="setChip(this,'대출 완납 후 근저당을 말소하고 싶습니다')">🔐 근저당 말소</span>
+      <span class="chip" onclick="setChip(this,'법인을 설립하고 싶습니다')">🏢 법인등기</span>
+    </div>
+  </div>
+
+  <!-- 벤토 그리드 -->
+  <div class="bento" id="bento">
+
+    <!-- AI 상황 추천 -->
+    <div class="gc b-ai-recommend" style="display:flex;flex-direction:column">
+      <div class="card-label cl-em">🤖 AI 에이전틱 추천</div>
+      <div class="card-title">내 상황에 맞는 법무사를 찾아드립니다</div>
+      <div class="ai-rec-wrap" style="flex:1;display:flex;flex-direction:column">
+        <div class="ai-rec-question">어떤 상황이신가요?</div>
+        <div class="situation-btns">
+          <button class="sit-btn" onclick="selectSit(this,'buy')">🏠 아파트 매매</button>
+          <button class="sit-btn" onclick="selectSit(this,'inherit')">📋 상속</button>
+          <button class="sit-btn" onclick="selectSit(this,'gift')">🤝 증여</button>
+          <button class="sit-btn" onclick="selectSit(this,'mortgage')">🔐 근저당</button>
+          <button class="sit-btn" onclick="selectSit(this,'corp')">🏢 법인</button>
+        </div>
+
+        <!-- 기본 상태: 선택 유도 안내 -->
+        <div id="ai-default" style="flex:1;display:flex;flex-direction:column;gap:10px;margin-top:14px">
+          <div style="padding:12px 14px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:18px">📄</span>
+            <div>
+              <div style="font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:2px">계약서 AI 분석</div>
+              <div style="font-size:11px;color:var(--text3)">위험조항·특약사항 무료 사전 점검</div>
+            </div>
+            <span style="margin-left:auto;font-size:11px;color:var(--emerald);font-weight:600">무료</span>
+          </div>
+          <div style="padding:12px 14px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:18px">⚖️</span>
+            <div>
+              <div style="font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:2px">지역 전문 법무사 연결</div>
+              <div style="font-size:11px;color:var(--text3)">계약서 검토 후 정확한 견적 제시</div>
+            </div>
+            <span style="margin-left:auto;font-size:11px;color:var(--blue2);font-weight:600">당일</span>
+          </div>
+          <div style="padding:12px 14px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:18px">🔒</span>
+            <div>
+              <div style="font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:2px">소개비 없이 직접 계약</div>
+              <div style="font-size:11px;color:var(--text3)">플랫폼은 연결만, 계약은 당사자끼리</div>
+            </div>
+            <span style="margin-left:auto;font-size:11px;color:var(--gold);font-weight:700">0원</span>
+          </div>
+        </div>
+
+        <div class="ai-result" id="ai-result" style="flex:1">
+          <div class="ai-result-label">AI 분석 결과</div>
+          <div id="ai-result-text"></div>
+          <div class="ai-match-cards" id="ai-matches"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 인증 랭킹 (지도 자리) -->
+    <div class="gc b-region-map" style="border-color:rgba(240,165,0,.2);background:linear-gradient(135deg,rgba(240,165,0,.07),rgba(27,111,238,.05))">
+      <div class="card-label cl-gold">🏅 등기링크 인증 법무사 랭킹</div>
+      <div class="card-title" style="margin-bottom:4px">이달의 TOP 법무사</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:14px">실제 이용 고객 평가 · 매월 갱신</div>
+
+      <!-- 1위 강조 -->
+      <div style="background:linear-gradient(135deg,rgba(240,165,0,.12),rgba(27,111,238,.08));border:1px solid rgba(240,165,0,.25);border-radius:12px;padding:14px 16px;margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#F0A500,#FFC94D);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#3C2000;flex-shrink:0">1</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px">
+              <span style="font-size:14px;font-weight:700;color:var(--text)">김정진 법무사</span>
+              <span style="font-size:10px;background:rgba(240,165,0,.15);color:var(--gold);border:1px solid rgba(240,165,0,.25);padding:1px 7px;border-radius:3px;font-weight:700">동탄 1위</span>
+            </div>
+            <div style="font-size:11px;color:var(--text3)">법무사사무소 인경 · 리뷰 47건</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:20px;font-weight:700;background:linear-gradient(135deg,var(--gold),var(--emerald));-webkit-background-clip:text;-webkit-text-fill-color:transparent">4.8</div>
+            <div style="font-size:10px;color:var(--text3)">/ 5.0</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:6px 8px;text-align:center">
+            <div style="font-size:13px;font-weight:700;color:var(--emerald)">4.9</div>
+            <div style="font-size:9px;color:var(--text3);margin-top:1px">친절도</div>
+          </div>
+          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:6px 8px;text-align:center">
+            <div style="font-size:13px;font-weight:700;color:var(--emerald)">4.8</div>
+            <div style="font-size:9px;color:var(--text3);margin-top:1px">처리속도</div>
+          </div>
+          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:6px 8px;text-align:center">
+            <div style="font-size:13px;font-weight:700;color:var(--emerald)">4.7</div>
+            <div style="font-size:9px;color:var(--text3);margin-top:1px">정확성</div>
+          </div>
+          <div style="flex:1;background:rgba(255,255,255,.05);border-radius:6px;padding:6px 8px;text-align:center">
+            <div style="font-size:13px;font-weight:700;color:var(--emerald)">4.8</div>
+            <div style="font-size:9px;color:var(--text3);margin-top:1px">사후대응</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2~5위 가로 정렬 -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:2px">
+        <div style="padding:10px 10px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;text-align:center">
+          <div style="width:24px;height:24px;border-radius:50%;background:rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text2);margin:0 auto 6px">2</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">이○○<br>법무사</div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">수원</div>
+          <div style="font-size:15px;font-weight:700;color:var(--blue2)">4.6</div>
+          <div style="font-size:10px;color:var(--emerald);margin-top:2px">▲</div>
+        </div>
+        <div style="padding:10px 10px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;text-align:center">
+          <div style="width:24px;height:24px;border-radius:50%;background:rgba(255,100,50,.12);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#FF8060;margin:0 auto 6px">3</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">박○○<br>법무사</div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">평택</div>
+          <div style="font-size:15px;font-weight:700;color:var(--blue2)">4.4</div>
+          <div style="font-size:10px;color:var(--emerald);margin-top:2px">▲</div>
+        </div>
+        <div style="padding:10px 10px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;text-align:center">
+          <div style="width:24px;height:24px;border-radius:50%;background:var(--glass);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);margin:0 auto 6px">4</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">최○○<br>법무사</div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">용인</div>
+          <div style="font-size:15px;font-weight:700;color:var(--blue2)">4.3</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">—</div>
+        </div>
+        <div style="padding:10px 10px;background:var(--glass2);border:1px solid var(--border);border-radius:10px;text-align:center">
+          <div style="width:24px;height:24px;border-radius:50%;background:var(--glass);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--text3);margin:0 auto 6px">5</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px">정○○<br>법무사</div>
+          <div style="font-size:10px;color:var(--text3);margin-bottom:4px">오산</div>
+          <div style="font-size:15px;font-weight:700;color:var(--blue2)">4.1</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px">—</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;padding:10px 14px;background:rgba(14,203,124,.06);border:1px solid rgba(14,203,124,.15);border-radius:8px;font-size:11.5px;color:var(--text2);line-height:1.7">
+        💡 랭킹은 <strong style="color:var(--emerald)">처리속도·친절도·정확성·사후대응</strong> 4개 항목 실거래 후기 기반입니다. 좋은 서비스가 자연스럽게 상위 노출됩니다.
+      </div>
+    </div>
+
+
+
+    <!-- 등기 절차 -->
+        <!-- AI 계약서 분석 -->
+    <div class="gc b-ai-analysis">
+      <div class="card-label cl-em">🤖 AI 계약서 분석</div>
+      <div class="card-title">계약서를 올리면<br>AI가 먼저 읽습니다</div>
+      <div class="ai-analysis-visual">
+        <div class="aav-step">
+          <div class="aav-icon">📄</div>
+          <div><div class="aav-label">계약서 업로드</div><div class="aav-desc">PDF · JPG · PNG 지원</div></div>
+          <div class="aav-arrow">→</div>
+        </div>
+        <div class="aav-step">
+          <div class="aav-icon">🔍</div>
+          <div><div class="aav-label">위험 조항 탐지</div><div class="aav-desc">특약사항·리스크 분석</div></div>
+          <div class="aav-arrow">→</div>
+        </div>
+        <div class="aav-step">
+          <div class="aav-icon">📊</div>
+          <div><div class="aav-label">안전도 리포트</div><div class="aav-desc">0~100점 종합 평가</div></div>
+          <div class="aav-arrow">→</div>
+        </div>
+        <div class="aav-step">
+          <div class="aav-icon">⚖️</div>
+          <div><div class="aav-label">법무사 연결</div><div class="aav-desc">결과 첨부 상담 신청</div></div>
+        </div>
+      </div>
+      <button class="ai-cta" onclick="window.open('ai-analysis.html','_blank')">무료 AI 분석 시작하기 →</button>
+    </div>
+
+    </div>
+
+    <!-- 상담 신청 (벤토 인라인) -->
+    <div class="gc" style="grid-column:span 12;background:linear-gradient(135deg,rgba(27,111,238,.12),rgba(14,203,124,.06));border-color:rgba(27,111,238,.25);padding:32px 36px" id="consult">
+      <div style="display:grid;grid-template-columns:1fr 1.4fr;gap:48px;align-items:start">
+
+        <!-- 좌측 안내 -->
+        <div>
+          <div class="card-label cl-blue" style="margin-bottom:10px">📋 상담 신청</div>
+          <div style="font-family:'Noto Serif KR',serif;font-size:24px;font-weight:700;color:var(--text);line-height:1.35;margin-bottom:10px;letter-spacing:-.03em">
+            계약서 한 장으로<br>정확한 견적을<br>받아보세요
+          </div>
+          <p style="font-size:13.5px;color:var(--text2);line-height:1.9;font-weight:300;margin-bottom:22px">
+            매매계약서를 첨부하시면<br>담당 법무사가 직접 검토 후<br>견적으로 연락드립니다.
+          </p>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)">
+              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">1</div>
+              신청서 + 계약서 제출
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)">
+              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">2</div>
+              법무사가 계약서 검토
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)">
+              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">3</div>
+              견적 + 직접 연락 (보통 당일)
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--text2)">
+              <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,var(--blue),var(--emerald));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0">4</div>
+              고객 ↔ 법무사 직접 계약
+            </div>
+          </div>
+        </div>
+
+        <!-- 우측 폼 -->
+        <div style="background:rgba(255,255,255,.04);border:1px solid var(--border2);border-radius:16px;padding:26px">
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px;letter-spacing:-.02em">상담 신청서</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <label style="font-size:11px;font-weight:600;color:var(--text3)">이름 *</label>
+              <input type="text" class="cfi" id="cf-name" placeholder="홍길동">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <label style="font-size:11px;font-weight:600;color:var(--text3)">연락처 *</label>
+              <input type="tel" class="cfi" id="cf-tel" placeholder="010-0000-0000">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <label style="font-size:11px;font-weight:600;color:var(--text3)">지역 *</label>
+              <select class="cfi" id="cf-region">
+                <option value="">선택하세요</option>
+                <option>화성 동탄</option><option>수원</option><option>오산</option><option>평택</option><option>용인</option>
+              </select>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <label style="font-size:11px;font-weight:600;color:var(--text3)">업무 유형 *</label>
+              <select class="cfi" id="cf-type">
+                <option value="">선택하세요</option>
+                <option>매매 이전등기</option><option>상속등기</option><option>증여등기</option>
+                <option>근저당 설정·말소</option><option>전세권 설정·말소</option><option>법인등기</option><option>기타</option>
+              </select>
+            </div>
+          </div>
+          <div class="drop-zone" id="dz" onclick="document.getElementById('fi').click()" style="margin-bottom:10px">
+            <div class="dz-icon" id="dz-icon">📄</div>
+            <div class="dz-text" id="dz-text">매매계약서 첨부 (필수)</div>
+            <div class="dz-sub">클릭 또는 드래그 · PDF·JPG·PNG · 최대 20MB</div>
+            <input type="file" id="fi" accept=".pdf,.jpg,.jpeg,.png" style="display:none" onchange="handleFile(this.files[0])">
+          </div>
+          <div class="file-ok" id="file-ok">
+            <span style="font-size:18px">✅</span>
+            <span class="fo-name" id="fo-name"></span>
+            <button class="fo-rm" onclick="removeFile()">×</button>
+          </div>
+          <textarea class="cfi" id="cf-memo" rows="2" placeholder="잔금일, 특이사항 등 (선택)" style="resize:none;margin-bottom:10px;line-height:1.6"></textarea>
+          <button class="submit-btn" id="sub-btn" onclick="submitForm()">상담 신청하기 →</button>
+          <div class="success-msg" id="success-msg">
+            <div class="sm-icon">✅</div>
+            <div class="sm-title">신청 완료!</div>
+            <div class="sm-desc">담당 법무사가 확인 후<br>직접 연락드립니다. (보통 당일)</div>
+          </div>
+          <div style="margin-top:10px;font-size:10.5px;color:var(--text3);text-align:center;line-height:1.7">
+            소개비 없음 · 플랫폼은 연결만 · 계약은 당사자 간 직접
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 서비스 -->
+    <div class="gc b-services">
+      <div class="card-label cl-muted">업무 안내</div>
+      <div class="card-title">어떤 등기가 필요하신가요?</div>
+      <div class="services-grid">
+        <div class="svc-item"><div class="svc-emoji">🏠</div><div class="svc-name">매매 소유권<br>이전등기</div></div>
+        <div class="svc-item"><div class="svc-emoji">📋</div><div class="svc-name">상속등기</div></div>
+        <div class="svc-item"><div class="svc-emoji">🤝</div><div class="svc-name">증여등기</div></div>
+        <div class="svc-item"><div class="svc-emoji">🔐</div><div class="svc-name">근저당<br>설정·말소</div></div>
+        <div class="svc-item"><div class="svc-emoji">📝</div><div class="svc-name">전세권<br>설정·말소</div></div>
+        <div class="svc-item"><div class="svc-emoji">🏢</div><div class="svc-name">법인등기</div></div>
+      </div>
+    </div>
+
+  </div><!-- /bento -->
+
+  <!-- FAQ -->
+  <div class="faq-wrap" id="faq">
+    <div class="card-label cl-muted" style="margin-bottom:8px">자주 묻는 질문</div>
+    <h2 style="font-family:'Noto Serif KR',serif;font-size:26px;color:var(--text);margin-bottom:16px">등기에 대해 궁금한 것들</h2>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"><span>법무사를 꼭 써야 하나요?</span><span class="faq-q-icon">+</span></div>
+        <div class="faq-a">셀프등기도 가능하지만 대출이 있는 경우 은행에서 법무사 선임을 요구합니다. 금액이 큰 거래일수록 전문가 선임을 권장합니다.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"><span>등기는 잔금일에 바로 완료되나요?</span><span class="faq-q-icon">+</span></div>
+        <div class="faq-a">잔금일에 신청하고 보통 3~7일 내 완료됩니다. 심사 중에도 소유권은 매수인에게 이전된 상태로 입주에 문제 없습니다.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"><span>은행 법무사를 꼭 써야 하나요?</span><span class="faq-q-icon">+</span></div>
+        <div class="faq-a">아닙니다. 소유권이전등기는 자유롭게 법무사를 선택할 수 있습니다. 은행이 강요하는 것은 부당합니다.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"><span>등기링크에 수수료가 있나요?</span><span class="faq-q-icon">+</span></div>
+        <div class="faq-a">없습니다. 고객으로부터 어떠한 수수료도 받지 않습니다. 법무사에게도 사건당 소개비를 수취하지 않습니다.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"><span>AI 계약서 분석은 법적 효력이 있나요?</span><span class="faq-q-icon">+</span></div>
+        <div class="faq-a">AI 분석은 사전 참고용 서비스이며 법적 효력이 없습니다. 실제 법률 검토는 반드시 법무사와 함께 진행하세요.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)"><span>계약서는 어떻게 관리되나요?</span><span class="faq-q-icon">+</span></div>
+        <div class="faq-a">업로드된 계약서는 AI 분석 후 즉시 삭제되며 플랫폼에 저장되지 않습니다. 상담 신청 시 해당 지역 법무사에게만 전달됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 면책 -->
+  <div class="disclaimer">
+    본 플랫폼은 법무사 광고 정보를 제공하는 서비스로, 법무사법상 알선행위를 하지 않으며 사건당 소개비를 수취하지 않습니다.<br>
+    법무사 선택 및 보수 결정은 고객과 법무사 간에 직접 이루어지며, 본 플랫폼은 법률 서비스의 당사자가 아닙니다.
+  </div>
+
+  <!-- 푸터 -->
+  <footer>
+    <div>
+      <div class="ft-brand">등기링크</div>
+      <p class="ft-desc"> 검증 법무사 광고 안내 플랫폼<br>운영: 케이탑공인중개사사무소 미사센터<br>대표 공인중개사: 김현진 · 블로그: 제로공실브리핑</p>
+    </div>
+    <div class="ft-col">
+      <h5>서비스</h5>
+      <ul>
+        <li><a href="#bento">법무사 찾기</a></li>
+        <li><a href="#bento">AI 계약서 분석</a></li>
+        
+        <li><a href="#consult">상담 신청</a></li>
+      </ul>
+    </div>
+    <div class="ft-col">
+      <h5>커버 지역</h5>
+      <ul>
+        <li><a href="#">화성 동탄</a></li>
+        <li><a href="#">수원</a></li>
+        <li><a href="#">오산</a></li>
+        <li><a href="#">평택</a></li>
+        <li><a href="#">용인</a></li>
+      </ul>
+    </div>
+    <div class="ft-col">
+      <h5>안내</h5>
+      <ul>
+        <li><a href="#faq">자주 묻는 질문</a></li>
+        <li><a href="#consult">상담 문의</a></li>
+        <li><a href="#">법무사 제휴 문의</a></li>
+      </ul>
+    </div>
+    <div class="ft-bottom" style="grid-column:1/-1">
+      <span>© 2026 등기링크. All rights reserved.</span>
+      <span>광고 정보 제공 서비스 · 법률 서비스 알선업체 아님</span>
+    </div>
+  </footer>
+
+</main>
+
+<script>
+// AI 상황 추천
+const sitData = {
+  buy:{text:'매매 이전등기가 필요하시군요. 잔금일에 맞춰 법무사를 미리 선임하시는 것이 중요합니다.',matches:[{av:'인경',name:'김정진 법무사',svc:'매매이전 · 분양전환',score:'4.8'},{av:'이',name:'이○○ 법무사',svc:'매매이전 · 법인',score:'4.6'}]},
+  inherit:{text:'상속등기는 상속인 전원의 협의가 필요합니다. 서류가 복잡할 수 있으니 전문가와 먼저 상담하세요.',matches:[{av:'인경',name:'김정진 법무사',svc:'상속 · 증여',score:'4.8'},{av:'박',name:'박○○ 법무사',svc:'상속 · 증여',score:'4.4'}]},
+  gift:{text:'증여등기는 증여세 신고·납부가 선행되어야 합니다. 공제 한도 확인 후 진행하세요.',matches:[{av:'박',name:'박○○ 법무사',svc:'증여 · 상속',score:'4.4'},{av:'인경',name:'김정진 법무사',svc:'매매이전 · 상속',score:'4.8'}]},
+  mortgage:{text:'근저당 말소는 대출 완납 확인서를 먼저 발급받으셔야 합니다. 빠르면 당일도 가능합니다.',matches:[{av:'이',name:'이○○ 법무사',svc:'근저당 · 법인',score:'4.6'},{av:'최',name:'최○○ 법무사',svc:'근저당 · 전세권',score:'4.3'}]},
+  corp:{text:'법인등기는 정관 작성부터 시작됩니다. 목적 사업 범위 설정이 중요하니 전문가와 함께하세요.',matches:[{av:'이',name:'이○○ 법무사',svc:'법인 · 매매이전',score:'4.6'},{av:'정',name:'정○○ 법무사',svc:'법인 · 기타',score:'4.1'}]},
+};
+
+function selectSit(el, key) {
+  document.querySelectorAll('.sit-btn').forEach(b=>b.classList.remove('on'));
+  el.classList.add('on');
+  const d = sitData[key];
+  document.getElementById('ai-result-text').textContent = d.text;
+  const mc = document.getElementById('ai-matches');
+  mc.innerHTML = d.matches.map(m=>`
+    <div class="ai-match-card">
+      <div class="amc-left">
+        <div class="amc-av">${m.av}</div>
+        <div><div class="amc-name">${m.name}</div><div class="amc-svc">${m.svc}</div></div>
+      </div>
+      <div class="amc-score">★ ${m.score}</div>
+    </div>`).join('');
+  document.getElementById('ai-default').style.display='none';
+  document.getElementById('ai-result').classList.add('show');
+}
+
+
+function selectRegion(el,r){}
+
+// AI 검색
+function setChip(el,text){
+  document.getElementById('ai-input').value=text;
+  aiSearch();
+}
+
+async function aiSearch(){
+  const v = document.getElementById('ai-input').value.trim();
+  const region = '';
+  if(!v){ alert('상황을 입력해주세요.'); return; }
+
+  const btn = document.querySelector('.ai-btn');
+  btn.textContent = '분석 중...';
+  btn.disabled = true;
+
+  // 결과 표시 영역 준비
+  let resultBox = document.getElementById('hero-ai-result');
+  if(!resultBox){
+    resultBox = document.createElement('div');
+    resultBox.id = 'hero-ai-result';
+    resultBox.style.cssText = `
+      margin-top:14px;padding:18px 20px;
+      background:rgba(14,203,124,.07);
+      border:1px solid rgba(14,203,124,.22);
+      border-radius:14px;font-size:13.5px;
+      color:rgba(240,244,255,.85);line-height:1.85;
+      animation:fadeIn .3s ease;
+    `;
+    document.querySelector('.ai-chips').after(resultBox);
+  }
+  resultBox.innerHTML = '<span style="color:var(--emerald)">🤖 AI 분석 중...</span>';
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        messages:[{
+          role:'user',
+          content: `당신은 등기링크 플랫폼의 등기 전문 AI 상담사입니다.
+커버 지역: 화성 동탄, 수원, 오산, 평택, 용인
+서비스: 매매이전등기, 상속등기, 증여등기, 근저당 설정·말소, 전세권 설정·말소, 법인등기
+
+고객 상황: "${v}"
+
+
+아래 형식으로 간결하게 답변하세요 (200자 이내, 친근한 말투):
+1. 필요한 등기 업무가 무엇인지
+2. 주의해야 할 핵심 포인트 1가지
+3. 다음 행동 (예: 계약서를 가지고 상담 신청 권유)
+
+절대 법적 조언은 하지 말고 "전문 법무사와 상담하세요"로 마무리하세요.`
+        }]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || '답변을 불러오지 못했습니다.';
+    resultBox.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:var(--emerald);letter-spacing:.06em;margin-bottom:8px">🤖 AI 분석 결과</div>
+      <div style="white-space:pre-line">${text}</div>
+      <button onclick="document.getElementById('consult').scrollIntoView({behavior:'smooth'})"
+        style="margin-top:14px;width:100%;padding:11px;background:linear-gradient(135deg,var(--blue),var(--emerald));
+        color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;
+        font-family:inherit;letter-spacing:-.01em">
+        📋 지금 바로 견적 신청하기 →
+      </button>
+    `;
+  } catch(e) {
+    resultBox.innerHTML = '<span style="color:var(--red)">오류가 발생했습니다. 잠시 후 다시 시도해주세요.</span>';
+  }
+
+  btn.textContent = 'AI 추천 →';
+  btn.disabled = false;
+}
+
+// 파일 업로드
+let selFile=null;
+function handleFile(f){
+  if(!f)return;
+  if(f.size>20*1024*1024){alert('20MB 이하 파일만 가능합니다');return}
+  selFile=f;
+  const dz=document.getElementById('dz');
+  dz.classList.add('has-file');
+  document.getElementById('dz-icon').textContent='✅';
+  document.getElementById('dz-text').textContent='첨부 완료';
+  document.getElementById('fo-name').textContent=f.name;
+  document.getElementById('file-ok').classList.add('show');
+}
+function removeFile(){
+  selFile=null;document.getElementById('fi').value='';
+  const dz=document.getElementById('dz');dz.classList.remove('has-file');
+  document.getElementById('dz-icon').textContent='📄';
+  document.getElementById('dz-text').textContent='매매계약서 첨부 (필수)';
+  document.getElementById('file-ok').classList.remove('show');
+}
+const dz=document.getElementById('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)handleFile(f)});
+
+// 폼 제출
+async function submitForm(){
+  const name=document.getElementById('cf-name').value.trim();
+  const tel=document.getElementById('cf-tel').value.trim();
+  const region=document.getElementById('cf-region').value;
+  const type=document.getElementById('cf-type').value;
+  const memo=document.getElementById('cf-memo').value.trim();
+
+  if(!name){alert('이름을 입력해주세요.');return}
+  if(!tel){alert('연락처를 입력해주세요.');return}
+  if(!region){alert('지역을 선택해주세요.');return}
+  if(!type){alert('업무 유형을 선택해주세요.');return}
+  if(!selFile){alert('매매계약서를 첨부해주세요. (필수)');return}
+
+  const btn=document.getElementById('sub-btn');
+  btn.textContent='전송 중...';
+  btn.disabled=true;
+
+  try {
+    // 파일 base64 변환
+    const base64 = await new Promise((res,rej)=>{
+      const reader=new FileReader();
+      reader.onload=()=>res(reader.result.split(',')[1]);
+      reader.onerror=rej;
+      reader.readAsDataURL(selFile);
+    });
+
+    const payload = {
+      이름: name,
+      연락처: tel,
+      지역: region,
+      업무유형: type,
+      메모: memo,
+      계약서파일명: selFile.name,
+      계약서: base64
+    };
+
+    await fetch('https://script.google.com/macros/s/AKfycbzAQ_oqWvBLzPixBYaCfipXSdpGX7d3Afpr8ZyV36pBfU3S0-WPW2YpmqqKIjDWRHwAMw/exec', {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: {'Content-Type': 'text/plain'},
+      body: JSON.stringify(payload)
+    });
+
+    // 성공 처리
+    btn.style.display='none';
+    document.getElementById('success-msg').style.display='block';
+
+  } catch(err) {
+    alert('오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    btn.textContent='상담 신청하기 →';
+    btn.disabled=false;
+  }
+}
+
+// FAQ
+function toggleFaq(el){
+  const item=el.closest('.faq-item');
+  const isOpen=item.classList.contains('open');
+  document.querySelectorAll('.faq-item').forEach(i=>i.classList.remove('open'));
+  if(!isOpen)item.classList.add('open');
+}
+</script>
+
+<!-- 모바일 플로팅 견적 신청 버튼 -->
+<div class="float-cta" id="floatCta">
+  <button onclick="document.getElementById('consult').scrollIntoView({behavior:'smooth'})">
+    <span class="float-icon">📋</span>
+    <span class="float-text">등기 견적 신청</span>
+    <span class="float-badge">무료</span>
+  </button>
+</div>
+
+<script>
+// 플로팅 버튼 - 상담폼 근처에서 숨기기
+const consultEl = document.getElementById("consult");
+const floatEl = document.getElementById("floatCta");
+window.addEventListener("scroll", () => {
+  if(!consultEl||!floatEl) return;
+  const r = consultEl.getBoundingClientRect();
+  if(r.top < window.innerHeight && r.bottom > 0){
+    floatEl.classList.add("hide");
+  } else {
+    floatEl.classList.remove("hide");
+  }
+});
+</script>
+</body>
+</html>
