@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>김사무장 업무자동화</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#060910;font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic',sans-serif;color:#e2e8f0;overflow:hidden;height:100vh;display:flex;flex-direction:column;}
+.topbar{background:#060910;border-bottom:1px solid #0f1a2e;padding:10px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo-box{width:34px;height:34px;border-radius:9px;background:#1a3a8f;display:flex;align-items:center;justify-content:center;color:#93c5fd;font-size:13px;font-weight:800;}
+.title{font-size:15px;font-weight:800;color:#f1f5f9;}
+.sub{font-size:10px;color:#334155;margin-top:1px;}
+.tright{display:flex;gap:8px;align-items:center;}
+.pill{padding:3px 9px;border-radius:20px;font-size:9px;font-weight:700;}
+.pill-g{background:rgba(34,197,94,0.15);color:#4ade80;border:1px solid rgba(34,197,94,0.2);}
+.pill-b{background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.2);}
+.clk{font-size:12px;color:#475569;font-weight:600;}
+
+.apps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:10px 14px;flex-shrink:0;}
+.app{background:#0c1221;border:1px solid #0f1f3a;border-radius:12px;padding:12px 14px;cursor:pointer;transition:all 0.18s;position:relative;overflow:hidden;}
+.app:hover{background:#111d35;border-color:#1e3a6a;transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.4);}
+.app:active{transform:scale(0.97);}
+.app-top{display:flex;align-items:center;gap:10px;margin-bottom:6px;}
+.app-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.app-name{font-size:13px;font-weight:800;color:#f1f5f9;}
+.app-desc{font-size:10px;color:#475569;margin-top:1px;}
+.app-foot{display:flex;align-items:center;justify-content:space-between;margin-top:6px;}
+.app-cnt{font-size:10px;color:#334155;}
+.app-tag{padding:2px 7px;border-radius:6px;font-size:9px;font-weight:700;}
+.tg{background:rgba(34,197,94,0.15);color:#4ade80;}
+.ta{background:rgba(139,92,246,0.15);color:#a78bfa;}
+.tn{background:rgba(59,130,246,0.15);color:#60a5fa;}
+.app-bar{position:absolute;bottom:0;left:0;right:0;height:2px;}
+.using{position:absolute;top:8px;right:8px;background:rgba(34,197,94,0.2);border:1px solid rgba(34,197,94,0.4);border-radius:8px;padding:2px 6px;font-size:8px;color:#4ade80;font-weight:700;display:none;animation:ub 1.5s infinite;}
+@keyframes ub{0%,100%{opacity:1}50%{opacity:0.4}}
+
+.scene{height:200px;min-height:200px;background:#070c18;position:relative;overflow:hidden;border-top:1px solid #0f1a2e;border-bottom:1px solid #0f1a2e;}
+.sc-label{position:absolute;top:6px;left:12px;font-size:9px;color:#1e3a5f;font-weight:700;letter-spacing:0.1em;}
+.sc-live{position:absolute;top:6px;right:12px;font-size:9px;color:#4ade80;font-weight:700;}
+.live-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#4ade80;margin-right:4px;animation:dp 1s ease-in-out infinite;}
+@keyframes dp{0%,100%{opacity:1}50%{opacity:0.2}}
+.floor{position:absolute;bottom:28px;left:0;right:0;height:1px;background:#0f1f3a;}
+.ground{position:absolute;bottom:0;left:0;right:0;height:28px;background:#04060f;}
+
+.btmbar{background:#04060f;border-top:1px solid #0a1020;padding:6px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.bstats{display:flex;gap:14px;align-items:center;}
+.bst{display:flex;align-items:center;gap:5px;font-size:10px;color:#475569;}
+.bst-dot{width:5px;height:5px;border-radius:50%;}
+.log-area{font-size:9px;color:#334155;max-width:500px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">
+    <div class="logo-box">KS</div>
+    <div>
+      <div class="title">김사무장 업무자동화</div>
+      <div class="sub">Smart Office Dashboard</div>
+    </div>
+  </div>
+  <div class="tright">
+    <span class="pill pill-g">● 시스템 정상</span>
+    <span class="pill pill-b">직원 <span id="activeN">0</span>명 활성</span>
+    <div class="clk" id="clk">--:--:--</div>
+  </div>
+</div>
+
+<div class="apps">
+  <div class="app" id="app0" onclick="runApp('집단등기자동화')">
+    <div class="using" id="u0"></div>
+    <div class="app-top">
+      <div class="app-icon" style="background:#0c2a4a;">📋</div>
+      <div><div class="app-name">집단등기자동화</div><div class="app-desc">분양 · 분양전환 · 대지권</div></div>
+    </div>
+    <div class="app-foot"><span class="app-cnt" id="c0">오늘 0건</span><span class="app-tag tg">LIVE</span></div>
+    <div class="app-bar" style="background:linear-gradient(90deg,#22c55e,#4ade80);"></div>
+  </div>
+  <div class="app" id="app1" onclick="runApp('블로그AI')">
+    <div class="using" id="u1"></div>
+    <div class="app-top">
+      <div class="app-icon" style="background:#1a0a2e;">✍️</div>
+      <div><div class="app-name">블로그 AI</div><div class="app-desc">제로공실브리핑 자동생성</div></div>
+    </div>
+    <div class="app-foot"><span class="app-cnt" id="c1">오늘 0건</span><span class="app-tag ta">AI</span></div>
+    <div class="app-bar" style="background:linear-gradient(90deg,#8b5cf6,#a78bfa);"></div>
+  </div>
+  <div class="app" id="app2" onclick="runApp('영업자동화')">
+    <div class="using" id="u2"></div>
+    <div class="app-top">
+      <div class="app-icon" style="background:#0a2010;">📊</div>
+      <div><div class="app-name">영업자동화</div><div class="app-desc">집단등기 영업 시스템</div></div>
+    </div>
+    <div class="app-foot"><span class="app-cnt" id="c2">오늘 0건</span><span class="app-tag tg">LIVE</span></div>
+    <div class="app-bar" style="background:linear-gradient(90deg,#10b981,#34d399);"></div>
+  </div>
+  <div class="app" onclick="runApp('등기비용계산기')">
+    <div class="app-top">
+      <div class="app-icon" style="background:#1a1000;">🧮</div>
+      <div><div class="app-name">등기비용 계산기</div><div class="app-desc">취득세 · 채권 · 수수료</div></div>
+    </div>
+    <div class="app-foot"><span class="app-cnt">즉시계산</span><span class="app-tag tn">TOOL</span></div>
+    <div class="app-bar" style="background:linear-gradient(90deg,#f59e0b,#fbbf24);"></div>
+  </div>
+  <div class="app" onclick="runApp('상담관리')">
+    <div class="app-top">
+      <div class="app-icon" style="background:#0a0a20;">👥</div>
+      <div><div class="app-name">상담관리</div><div class="app-desc">구글시트 연동 고객관리</div></div>
+    </div>
+    <div class="app-foot"><span class="app-cnt">실시간연동</span><span class="app-tag tn">TOOL</span></div>
+    <div class="app-bar" style="background:linear-gradient(90deg,#06b6d4,#22d3ee);"></div>
+  </div>
+  <div class="app" onclick="runApp('분양공고문AI')">
+    <div class="app-top">
+      <div class="app-icon" style="background:#0a180a;">🔬</div>
+      <div><div class="app-name">분양공고문 AI</div><div class="app-desc">NotebookLM 분석</div></div>
+    </div>
+    <div class="app-foot"><span class="app-cnt">AI분석</span><span class="app-tag ta">AI</span></div>
+    <div class="app-bar" style="background:linear-gradient(90deg,#ec4899,#f472b6);"></div>
+  </div>
+  <div class="app" id="app6" onclick="runApp('개별등기시스템')">
+    <div class="using" id="u6"></div>
+    <div class="app-top">
+      <div class="app-icon" style="background:#1a0e00;">🏠</div>
+      <div><div class="app-name">개별등기시스템</div><div class="app-desc">셀프등기패스 대시보드</div></div>
+    </div>
+    <div class="app-foot"><span class="app-cnt" id="c6">즉시실행</span><span class="app-tag tg">LIVE</span></div>
+    <div class="app-bar" style="background:linear-gradient(90deg,#f97316,#fb923c);"></div>
+  </div>
+</div>
+
+<div class="scene" id="scene">
+  <div class="sc-label">LIVE — OFFICE MONITOR</div>
+  <div class="sc-live"><span class="live-dot"></span>실시간 감지중</div>
+  <div id="desks"></div>
+  <div class="floor"></div>
+  <div class="ground"></div>
+</div>
+
+<div class="btmbar">
+  <div class="bstats">
+    <div class="bst"><div class="bst-dot" style="background:#22c55e;"></div>NAS 연결</div>
+    <div class="bst"><div class="bst-dot" style="background:#3b82f6;"></div>API 활성</div>
+    <div class="bst"><div class="bst-dot" style="background:#f59e0b;"></div><span id="todayCnt">오늘 0건</span></div>
+  </div>
+  <div class="log-area" id="logArea">활동 로그 대기중...</div>
+</div>
+
+<script>
+// 시계
+setInterval(()=>{document.getElementById('clk').textContent=new Date().toLocaleTimeString('ko-KR');},1000);
+document.getElementById('clk').textContent=new Date().toLocaleTimeString('ko-KR');
+
+// 직원 생성
+const scene=document.getElementById('desks');
+const bodyColors=['#1d4ed8','#0f766e','#7c3aed','#b45309','#0e7490','#be185d','#15803d','#c2410c','#4338ca','#0369a1'];
+const skinColors=['#fbbf24','#fca5a5','#fde68a','#e9d5ff'];
+const screenThemes=[['#0d4a1a','#22c55e'],['#0a2a5c','#60a5fa'],['#2d0a5c','#a78bfa'],['#3a1500','#fb923c']];
+const names=['김민준','이서연','박지호','최수아','정태양','윤하은','임도현','강나래','오세진','한미래'];
+const acts=['PDF처리중','엑셀입력','서류검토','주소확인','데이터추출','양식작성','파일분류','정보대조'];
+const agentEls=[];
+
+function makeWorker(x,y,idx){
+  const bc=bodyColors[idx%bodyColors.length];
+  const sk=skinColors[idx%skinColors.length];
+  const [sbg,sfg]=screenThemes[idx%screenThemes.length];
+  const spd=0.6+Math.random()*0.8;
+
+  const wrap=document.createElement('div');
+  wrap.style.cssText=`position:absolute;left:${x}px;top:${y}px;display:flex;flex-direction:column;align-items:center;`;
+
+  // 모니터 (크게 — 4줄 콘텐츠)
+  const mon=document.createElement('div');
+  mon.style.cssText=`width:38px;height:26px;background:#060910;border:1.5px solid #1e3a5f;border-radius:3px;overflow:hidden;position:relative;box-shadow:0 0 5px ${sfg}18;`;
+  mon.innerHTML=`<div style="position:absolute;inset:2px;background:${sbg};border-radius:1px;">
+    <div id="sl${idx}" style="height:2px;background:${sfg};margin:1px 2px;border-radius:1px;opacity:0.9;width:75%;transition:width ${spd}s;"></div>
+    <div id="s2${idx}" style="height:2px;background:${sfg};margin:1px 2px;border-radius:1px;opacity:0.65;width:50%;transition:width ${spd*1.2}s;"></div>
+    <div id="s3${idx}" style="height:2px;background:${sfg};margin:1px 2px;border-radius:1px;opacity:0.45;width:85%;transition:width ${spd*0.85}s;"></div>
+    <div id="s4${idx}" style="height:2px;background:${sfg};margin:1px 2px;border-radius:1px;opacity:0.7;width:35%;transition:width ${spd*1.1}s;"></div>
+  </div>`;
+
+  const stand=document.createElement('div');
+  stand.style.cssText='width:2px;height:5px;background:#1e293b;margin:0 auto;';
+  const base=document.createElement('div');
+  base.style.cssText='width:30px;height:4px;background:#1e293b;border-radius:2px;border-top:1px solid #2d3f5a;';
+  const kb=document.createElement('div');
+  kb.style.cssText='width:20px;height:2px;background:#0f172a;border-radius:1px;margin:1px auto 0;';
+
+  // 직원 캐릭터 (개선된 비율)
+  const wk=document.createElement('div');
+  wk.style.cssText='display:flex;flex-direction:column;align-items:center;margin-top:1px;';
+  wk.innerHTML=`
+    <div style="width:9px;height:9px;border-radius:50%;background:${sk};"></div>
+    <div style="width:13px;height:8px;background:${bc};border-radius:2px 2px 0 0;margin-top:-1px;"></div>
+    <div style="display:flex;gap:1px;margin-top:0;">
+      <div id="al${idx}" style="width:4px;height:6px;background:${bc};border-radius:1px;transform-origin:top center;"></div>
+      <div id="ar${idx}" style="width:4px;height:6px;background:${bc};border-radius:1px;transform-origin:top center;"></div>
+    </div>
+  `;
+
+  // 의자
+  const chair=document.createElement('div');
+  chair.innerHTML=`
+    <div style="width:22px;height:3px;background:#162030;border-radius:1px;margin-top:1px;border-top:1px solid #1e3a5f;"></div>
+    <div style="display:flex;justify-content:space-between;width:16px;margin:0 auto;">
+      <div style="width:2px;height:5px;background:#0f1a2e;"></div>
+      <div style="width:2px;height:5px;background:#0f1a2e;"></div>
+    </div>
+  `;
+
+  // 상태뱃지
+  const badge=document.createElement('div');
+  badge.id=`bd${idx}`;
+  badge.style.cssText=`position:absolute;top:-14px;left:50%;transform:translateX(-50%);background:rgba(34,197,94,0.2);border:1px solid rgba(34,197,94,0.4);border-radius:4px;padding:1px 4px;font-size:7px;color:#4ade80;font-weight:700;white-space:nowrap;display:none;`;
+
+  wrap.appendChild(badge);
+  wrap.appendChild(mon);
+  wrap.appendChild(stand);
+  wrap.appendChild(base);
+  wrap.appendChild(kb);
+  wrap.appendChild(wk);
+  wrap.appendChild(chair);
+  scene.appendChild(wrap);
+
+  agentEls.push({wrap,badge,name:names[idx%names.length],bc,idx});
+
+  // 타이핑 + 화면 애니메이션
+  setInterval(()=>{
+    const sl=document.getElementById(`sl${idx}`);
+    const s2=document.getElementById(`s2${idx}`);
+    const s3=document.getElementById(`s3${idx}`);
+    const s4=document.getElementById(`s4${idx}`);
+    const al=document.getElementById(`al${idx}`);
+    const ar=document.getElementById(`ar${idx}`);
+    if(sl)sl.style.width=(20+Math.random()*72)+'%';
+    if(s2)s2.style.width=(15+Math.random()*78)+'%';
+    if(s3)s3.style.width=(20+Math.random()*68)+'%';
+    if(s4)s4.style.width=(10+Math.random()*82)+'%';
+    if(al)al.style.transform=`rotate(${-20+Math.random()*40}deg)`;
+    if(ar)ar.style.transform=`rotate(${-20+Math.random()*40}deg)`;
+  },400+Math.random()*600);
+}
+
+// 천장 형광등 4개
+[90,370,650,930].forEach(lx=>{
+  const fl=document.createElement('div');
+  fl.style.cssText=`position:absolute;left:${lx}px;top:0;width:140px;height:3px;background:linear-gradient(90deg,transparent,rgba(180,210,255,0.55) 20%,rgba(210,230,255,0.82) 50%,rgba(180,210,255,0.55) 80%,transparent);box-shadow:0 0 14px 5px rgba(150,190,255,0.12);`;
+  scene.appendChild(fl);
+  const cone=document.createElement('div');
+  cone.style.cssText=`position:absolute;left:${lx+15}px;top:3px;width:110px;height:65px;background:linear-gradient(to bottom,rgba(140,180,255,0.07),transparent);pointer-events:none;`;
+  scene.appendChild(cone);
+});
+
+// 직원 + 파티션 (2행 × 28명, 32px 간격)
+[5,108].forEach(ry=>{
+  for(let i=0;i<28;i++){
+    const wx=8+i*32;
+    if(wx>1180)break;
+    makeWorker(wx,ry,agentEls.length);
+    if((i+1)%5===0&&i<27){
+      const pt=document.createElement('div');
+      pt.style.cssText=`position:absolute;left:${wx+32-4}px;top:${ry-2}px;width:2px;height:66px;background:linear-gradient(to bottom,#243f6a,#0d1e36);box-shadow:0 0 3px rgba(30,58,95,0.5);`;
+      scene.appendChild(pt);
+    }
+  }
+});
+
+// 활동 시뮬레이션
+const appNames=['집단등기자동화','블로그AI','영업자동화'];
+let totalCnt=0;
+const cnts=[0,0,0];
+let activeSet=new Set();
+
+setInterval(()=>{
+  const idx=Math.floor(Math.random()*agentEls.length);
+  const ag=agentEls[idx];
+  if(!ag)return;
+  const prog=appNames[Math.floor(Math.random()*3)];
+  const act=acts[Math.floor(Math.random()*acts.length)];
+  if(activeSet.has(idx)){
+    if(Math.random()<0.3){activeSet.delete(idx);ag.badge.style.display='none';}
+  } else {
+    activeSet.add(idx);
+    ag.badge.textContent=act;
+    ag.badge.style.display='block';
+    totalCnt++;
+    const pi=appNames.indexOf(prog);
+    if(pi>=0){
+      cnts[pi]++;
+      document.getElementById('c'+pi).textContent='오늘 '+cnts[pi]+'건';
+      const uel=document.getElementById('u'+pi);
+      if(uel){uel.textContent=ag.name+' 사용중';uel.style.display='block';setTimeout(()=>{uel.style.display='none';},4000);}
+    }
+    document.getElementById('todayCnt').textContent='오늘 '+totalCnt+'건';
+    document.getElementById('activeN').textContent=activeSet.size;
+    document.getElementById('logArea').textContent=new Date().toLocaleTimeString('ko-KR')+' | '+ag.name+' → '+prog+' '+act;
+  }
+},1500);
+
+// ── Flask 서버 연동 (상대경로 — launcher.py 실행 필수) ──────────────
+const APP_ID_MAP = {
+  '집단등기자동화':'registry', '블로그AI':'blog_ai', '블로그 AI':'blog_ai',
+  '영업자동화':'sales_auto', '등기비용계산기':'cost_calc',
+  '상담관리':'consult', '분양공고문AI':'announce_ai', '분양공고문 AI':'announce_ai',
+  '개별등기시스템':'individual_registry'
+};
+
+function runApp(name) {
+  const id = APP_ID_MAP[name] || name;
+  fetch(`/run?app=${encodeURIComponent(id)}`)
+    .then(r => r.json())
+    .then(d => { if (!d.ok) alert('[' + name + '] ' + (d.msg || '실행 실패')); })
+    .catch(() => alert('launcher.py를 먼저 실행해 주세요.\n(python launcher.py)'));
+}
+
+// ── NAS 로그 폴링 (10초마다) ────────────────────────────────────────
+function pollLog() {
+  fetch('/log?n=1')
+    .then(r => r.json())
+    .then(d => { if (d.lines && d.lines.length > 0) document.getElementById('logArea').textContent = d.lines[0]; })
+    .catch(() => {});
+}
+setInterval(pollLog, 10000);
+pollLog();
+
+// ── 앱 실행 상태 폴링 (5초마다) ─────────────────────────────────────
+function pollStatus() {
+  fetch('/status')
+    .then(r => r.json())
+    .then(d => {
+      const u0 = document.getElementById('u0');
+      const st = d['registry'];
+      if (u0 && st) {
+        u0.textContent = st.running ? '실행 중' : '';
+        u0.style.display = st.running ? 'block' : 'none';
+      }
+    })
+    .catch(() => {});
+}
+setInterval(pollStatus, 5000);
+</script>
+</body>
+</html>

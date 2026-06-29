@@ -1,0 +1,50 @@
+# ── Python ─────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.eggs/
+
+# ── Virtual environment ───────────────────────────────────────────────
+.venv/
+venv/
+env/
+ENV/
+
+# ── PyInstaller build artifacts ───────────────────────────────────────
+build/
+dist/
+*.spec.bak
+
+# ── IDE / OS ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Project-specific ──────────────────────────────────────────────────
+# 라이선스 파일은 PC별 발급되는 비밀이므로 절대 커밋 금지
+license.dat
+키발급도구/키발급/license.dat
+
+# 실제 API 키가 포함된 사용자 환경 설정 (deploy_assets/config.ini 템플릿만 커밋)
+/config.ini
+
+# OCR 처리 결과
+/output/*.xlsx
+/output/*.txt
+/output/*.json
+!/output/.gitkeep
+
+# 디버그 출력
+debug_out*.txt
+
+# 임시 백업
+* - 복사본.*
+* (1).*
+* (2).*
+*.tmp
+*.bak
