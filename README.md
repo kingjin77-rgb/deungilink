@@ -35,15 +35,23 @@ pip install pdfplumber pdf2image pillow openpyxl requests
 - **Mac**: `brew install poppler`
 
 ### 4. API 키 설정
-`config.ini` 파일 열어서 수정:
-```ini
-[api]
-api_key = sk-ant-api03-xxxxx...  ← Anthropic 콘솔에서 발급
-```
-또는 환경변수로 설정:
+`config.ini.example` 파일을 복사해 `config.ini` 로 저장한 뒤 자신의 키로 채워 넣습니다.
 ```bash
-set ANTHROPIC_API_KEY=sk-ant-api03-xxxxx...  # Windows
+copy config.ini.example config.ini   :: Windows
+cp   config.ini.example config.ini   #  Mac/Linux
 ```
+이후 `config.ini` 의 `[api]` / `[claude]` 섹션에 Anthropic 콘솔에서 발급받은 API 키를 입력합니다.
+
+> `config.ini` 는 `.gitignore` 로 추적 제외되어 있어 실수로도 공개 저장소에 올라가지 않습니다.
+> 실제 키는 절대 `config.ini.example` 에 적지 마세요.
+
+### 5. 라이선스 비밀키 환경변수 설정 (판매자 PC 전용)
+라이선스 발급·검증에 사용되는 HMAC 비밀키는 환경변수 `JL_REGISTRY_SECRET` 로 주입합니다.
+```bash
+setx  JL_REGISTRY_SECRET "발급한_비밀키"        :: Windows (재로그인 필요)
+export JL_REGISTRY_SECRET="발급한_비밀키"       #  Mac/Linux
+```
+환경변수 미설정 시 라이선스 검증이 동작하지 않으므로 프로그램이 즉시 종료됩니다.
 
 ---
 

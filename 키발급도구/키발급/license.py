@@ -9,8 +9,10 @@ import hashlib, hmac, base64, json, os, re
 from datetime import datetime, date
 from pathlib import Path
 
-# ── 판매자 전용 비밀키 (절대 외부 공개 금지) ─────────────────────────────────
-_SECRET = b"JEIL_REGISTRY_2026_SECRET_KEY_DO_NOT_SHARE"
+# ── 판매자 전용 비밀키 ───────────────────────────────────────────────────────
+#  환경변수 JL_REGISTRY_SECRET 로 주입한다. (공개 저장소 커밋 금지)
+_SECRET_STR = os.environ.get("JL_REGISTRY_SECRET", "")
+_SECRET = _SECRET_STR.encode("utf-8") if _SECRET_STR else b""
 
 LICENSE_FILE = Path(__file__).parent / "license.dat"
 PRODUCT_NAME = "법무법인제이엘 등기자동화"
@@ -56,6 +58,9 @@ def generate_key(machine_id: str, customer_name: str,
     라이선스 키 생성 — 판매자만 사용 (keygen.py)
     machine_id: get_machine_id() 결과 (고객에게 받아야 함)
     """
+    if not _SECRET:
+        raise RuntimeError(
+            "환경변수 JL_REGISTRY_SECRET 가 설정되어 있지 않아 키를 발급할 수 없습니다.")
     payload = {
         "mid":  machine_id,
         "name": customer_name,

@@ -1,0 +1,56 @@
+; ─────────────────────────────────────────────────────────────────────
+;  법무법인제이엘 등기자동화 — 환경 설정 예시
+; ─────────────────────────────────────────────────────────────────────
+;  실제 사용 시 이 파일을 복사하여 config.ini 로 저장한 뒤
+;  각 API 키와 경로를 자신의 환경에 맞게 수정하세요.
+;
+;  ※ config.ini 는 .gitignore 로 추적 제외되어 있습니다.
+;  ※ 실제 키를 절대 GitHub 등 공개 저장소에 커밋하지 마세요.
+; ─────────────────────────────────────────────────────────────────────
+
+[tesseract]
+path = C:\Program Files\Tesseract-OCR\tesseract.exe
+lang = kor+eng
+
+[ocr]
+dpi = 200
+max_image_size = 1600
+api_delay = 0.3
+
+[processing]
+max_workers = 5
+output_dir = ./output
+
+[cost]
+채권할인율 = 1.7
+이전채권매입율 = 2.1
+설정채권매입율 = 1.2
+증지대_이전 = 15000
+증지대_설정 = 15000
+교통비 = 0
+제증명료 = 0
+송달료 = 0
+신탁말소_보수료단가 = 50000
+
+[api]
+; Anthropic 콘솔에서 발급받은 키를 입력하세요. https://console.anthropic.com
+api_key = YOUR_ANTHROPIC_API_KEY_HERE
+
+[claude]
+api_key = YOUR_ANTHROPIC_API_KEY_HERE
+model = claude-sonnet-4-6
+dpi = 200
+max_pages = 5
+
+[clova]
+; Naver Clova OCR 사용 시에만 입력 (선택)
+invoke_url =
+secret_key =
+client_id =
+client_secret =
+
+[nas]
+; NAS 공유폴더의 로그 파일 전체 경로 (UNC 경로 또는 드라이브 문자)
+; 예: \\192.168.1.100\공유\등기자동화_로그.csv
+; 예: Z:\등기자동화_로그.csv
+log_path =

@@ -9,8 +9,14 @@ import hashlib, hmac, base64, json, os, re
 from datetime import datetime, date
 from pathlib import Path
 
-# ── 판매자 전용 비밀키 (절대 외부 공개 금지) ─────────────────────────────────
-_SECRET = b"JEIL_REGISTRY_2026_SECRET_KEY_DO_NOT_SHARE"
+# ── 판매자 전용 비밀키 ───────────────────────────────────────────────────────
+#  GitHub 등 공개 저장소에 커밋되지 않도록 환경변수로 주입한다.
+#  배포·실행 환경에서 다음 환경변수를 반드시 설정하세요:
+#     setx JL_REGISTRY_SECRET "발급한_비밀키"        (Windows)
+#     export JL_REGISTRY_SECRET="발급한_비밀키"      (Mac/Linux)
+#  ※ 환경변수 미설정 시 라이선스 검증이 동작하지 않습니다.
+_SECRET_STR = os.environ.get("JL_REGISTRY_SECRET", "")
+_SECRET = _SECRET_STR.encode("utf-8") if _SECRET_STR else b""
 
 LICENSE_FILE = Path(__file__).parent / "license.dat"
 PRODUCT_NAME = "법무법인제이엘 등기자동화"
@@ -56,6 +62,9 @@ def generate_key(machine_id: str, customer_name: str,
     라이선스 키 생성 — 판매자만 사용 (keygen.py)
     machine_id: get_machine_id() 결과 (고객에게 받아야 함)
     """
+    if not _SECRET:
+        raise RuntimeError(
+            "환경변수 JL_REGISTRY_SECRET 가 설정되어 있지 않아 키를 발급할 수 없습니다.")
     payload = {
         "mid":  machine_id,
         "name": customer_name,
@@ -92,6 +101,10 @@ class LicenseResult:
 
 def validate_license(license_key: str) -> LicenseResult:
     """라이선스 키 검증"""
+    if not _SECRET:
+        return LicenseResult(False,
+            "라이선스 비밀키가 설정되지 않았습니다.\n"
+            "환경변수 JL_REGISTRY_SECRET 를 설정한 뒤 프로그램을 재시작하세요.")
     if not license_key or "|" not in license_key:
         return LicenseResult(False, "라이선스 키 형식이 올바르지 않습니다.")
 
