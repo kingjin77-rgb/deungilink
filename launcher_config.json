@@ -1,0 +1,24 @@
+{
+  "registry": {
+    "path": "C:\\Users\\corncake\\Desktop\\집단등기자동화\\registry_auto_v3\\registry_auto\\gui.py"
+  },
+  "blog_ai": {
+    "path": ""
+  },
+  "sales_auto": {
+    "path": "C:\\Users\\corncake\\Desktop\\집단등기영업자동화\\JL스캐너실행.bat"
+  },
+  "cost_calc": {
+    "path": ""
+  },
+  "consult": {
+    "path": ""
+  },
+  "announce_ai": {
+    "path": "",
+    "url": "https://notebooklm.google.com/notebook/508e5173-bdfe-4733-80eb-17a4540cc7b4"
+  },
+  "individual_registry": {
+    "path": "C:\\Users\\corncake\\Desktop\\dashboard\\셀프등기패스_대시보드\\대시보드_실행하기.bat"
+  }
+}
