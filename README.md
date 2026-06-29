@@ -21,18 +21,29 @@ registry_auto/
 
 ## ⚙️ 설치 방법
 
+### 빠른 설치 (Windows)
+저장소 폴더에서 **`설치.bat` 더블클릭** → 패키지 설치 + `config.ini` 생성까지 자동 진행됩니다.
+이후 아래 3·4·5번(Poppler/Tesseract/API 키/라이선스)만 마무리하면 됩니다.
+
 ### 1. Python 설치
 Python 3.10 이상 필요 (https://python.org)
+설치 시 **"Add Python to PATH"** 체크 (tkinter 는 기본 포함됨)
 
 ### 2. 패키지 설치
 ```bash
-pip install pdfplumber pdf2image pillow openpyxl requests
+pip install -r requirements.txt
 ```
 
-### 3. Poppler 설치 (PDF → 이미지 변환)
+### 3. Poppler 설치 (이미지 PDF → 이미지 변환, 스캔본 OCR에 필요)
 - **Windows**: https://github.com/oschwartz10612/poppler-windows/releases
   - 압축 해제 후 `bin` 폴더를 PATH에 추가
 - **Mac**: `brew install poppler`
+
+### 3-1. Tesseract-OCR 설치 (로컬 무료 OCR)
+- **Windows**: https://github.com/UB-Mannheim/tesseract/wiki 에서 설치 후
+  설치 경로(`tesseract.exe`)를 `config.ini` 의 `[tesseract] path` 에 입력
+- **Mac**: `brew install tesseract tesseract-lang`
+- 한글 인식을 위해 `kor` 언어 데이터 포함 설치
 
 ### 4. API 키 설정
 `config.ini.example` 파일을 복사해 `config.ini` 로 저장한 뒤 자신의 키로 채워 넣습니다.

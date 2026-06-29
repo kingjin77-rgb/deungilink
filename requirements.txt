@@ -1,0 +1,23 @@
+# 법무법인제이엘 등기자동화 — Python 패키지 의존성
+# 설치: pip install -r requirements.txt
+#
+# 참고: tkinter 는 Windows용 python.org 설치본에 기본 포함됩니다.
+#       (별도 pip 설치 불필요)
+
+# ── 필수 ──────────────────────────────────────────────────────────
+openpyxl>=3.1          # 기본명단 엑셀 입출력 (서식 보존)
+requests>=2.31         # API 통신 (라이선스 NAS 로그 등)
+pdfplumber>=0.11       # 텍스트 PDF 추출 (1차 OCR, API 비용 0원)
+
+# ── 이미지 PDF OCR (스캔본 처리) ─────────────────────────────────
+# 아래 2개는 외부 프로그램(Poppler, Tesseract)도 함께 설치해야 동작합니다.
+# README.md 의 "Poppler / Tesseract 설치" 항목을 참고하세요.
+pdf2image>=1.17        # PDF → 이미지 변환 (Poppler 필요)
+Pillow>=10.0           # 이미지 처리
+pytesseract>=0.3.10    # 로컬 무료 OCR (Tesseract 필요)
+
+# ── Claude Vision OCR (최후 수단, 이미지 PDF 정밀 추출) ──────────
+anthropic>=0.40        # Claude API 클라이언트
+
+# ── 선택: 통합 런처(김사무장 대시보드) 사용 시 ──────────────────
+flask>=3.0             # launcher.py (로컬 대시보드). 메인 앱엔 불필요
