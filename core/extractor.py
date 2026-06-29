@@ -52,7 +52,12 @@ def classify_document(text: str) -> str:
         return "위임장"
     if any(k in t for k in ["자동차운전면허증", "운전면허증", "Driver's License", "Driver License"]):
         return "운전면허증"
-    if any(k in t for k in ["주민등록표", "초본", "초 본"]):
+    # 등본은 초본보다 먼저 — "주민등록표" 키워드가 양쪽 다 매칭되므로
+    if any(k in t for k in ["주민등록표등본", "주민등록표 등본",
+                              "주민등록등본", "등 본", "주민등록표(등본)"]):
+        return "주민등록등본"
+    if any(k in t for k in ["주민등록표초본", "주민등록표 초본",
+                              "주민등록초본", "주민등록표", "초본", "초 본"]):
         return "주민등록초본"
     if any(k in t for k in ["증여계약서", "증 여 계 약 서", "수증인", "증여할지분"]):
         return "증여계약서"
@@ -270,6 +275,130 @@ def extract_주민등록초본(text: str) -> dict:
     m = re.search(r"0\d{1,2}-\d{3,4}-\d{4}", text)
     if m:
         result["전화번호"] = m.group(0)
+
+    # 초본 발행일 — 마지막 페이지 하단 "신청일/발급일/발행일" 패턴
+    # 우선순위: "발급일자" > "발행일자" > "발급일" > "발행일" > 최종 "신청일"
+    발행일 = _extract_발행일(text)
+    if 발행일:
+        # 매핑 JSON 에 두 가지 키 표기가 공존 — 동시 채움
+        result["초본발행일"] = 발행일
+        result["초본"] = 발행일
+
+    return result
+
+
+# ── 발행일 공통 추출 헬퍼 ────────────────────────────────────────────────────
+
+def _extract_발행일(text: str) -> str:
+    """
+    각종 증명서의 발행일/발급일을 YYYY-MM-DD 로 정규화하여 반환.
+    초본·등본·인감증명서의 발급일자 추출에 공통 사용.
+    """
+    # "발급일자 2024년 06월 15일" / "발행일 : 2024.06.15." / "2024. 06. 15"
+    patterns = [
+        r"(?:발급|발행)\s*일\s*자?\s*[:\s]*(\d{4})\s*[년.\-]\s*(\d{1,2})\s*[월.\-]\s*(\d{1,2})",
+        r"(?:신청|교부)\s*일\s*자?\s*[:\s]*(\d{4})\s*[년.\-]\s*(\d{1,2})\s*[월.\-]\s*(\d{1,2})",
+    ]
+    for p in patterns:
+        m = re.search(p, text)
+        if m:
+            y, mo, d = m.group(1), m.group(2).zfill(2), m.group(3).zfill(2)
+            return f"{y}-{mo}-{d}"
+    # 폴백: 텍스트 후반부의 마지막 "YYYY년 MM월 DD일" — 통상 발급일이 마지막에 위치
+    tail = text[-600:] if len(text) > 600 else text
+    dates = re.findall(r"(\d{4})\s*[년.\-]\s*(\d{1,2})\s*[월.\-]\s*(\d{1,2})", tail)
+    if dates:
+        y, mo, d = dates[-1][0], dates[-1][1].zfill(2), dates[-1][2].zfill(2)
+        return f"{y}-{mo}-{d}"
+    return ""
+
+
+# ── 인감증명서 ────────────────────────────────────────────────────────────────
+
+def extract_인감증명서(text: str) -> dict:
+    """
+    인감증명서 OCR → 성명·주민번호·인감발행일 추출.
+    매핑의 인감발행일 열을 채우기 위한 핵심 추출기.
+    """
+    result = {}
+
+    # 성명 — "성명 홍길동" / "성    명  :  홍길동"
+    m = re.search(r"성\s*명\s*[:：]?\s*([가-힣]{2,5})(?!\s*(?:법|법인))", text)
+    if not m:
+        m = re.search(r"성\s*명\s*\(?한자\)?\s*([가-힣]{2,5})", text)
+    if m:
+        result["성명"] = m.group(1).strip()
+
+    # 주민등록번호
+    m = re.search(r"(\d{6}[-–]\d{7})", text)
+    if m:
+        result["주민등록번호"] = m.group(1).replace("–", "-")
+
+    # 인감발행일 — 발급일자 우선
+    발행일 = _extract_발행일(text)
+    if 발행일:
+        result["인감발행일"] = 발행일
+        result["인감"] = 발행일
+
+    return result
+
+
+# ── 주민등록등본 ──────────────────────────────────────────────────────────────
+
+def extract_주민등록등본(text: str) -> dict:
+    """
+    주민등록등본 OCR → 세대주 성명·주민번호·주소·등본발행일·세대원수 추출.
+    1주택 감면·세대분리 판단에 사용.
+    """
+    result = {}
+
+    # 세대주 성명 (첫 번째로 등장하는 성명 — 보통 세대주)
+    m = re.search(r"세\s*대\s*주\s*[:：]?\s*([가-힣]{2,5})", text)
+    if not m:
+        m = re.search(r"성\s*명\s*\(?한자\)?\s*([가-힣]{2,5})", text)
+    if m:
+        result["성명"] = m.group(1).strip()
+
+    # 주민등록번호 (세대주 = 첫 번째)
+    m = re.search(r"(\d{6}[-–]\d{7})", text)
+    if m:
+        result["주민등록번호"] = m.group(1).replace("–", "-")
+
+    # 주소 — "이하 여백" 직전 마지막 도시 키워드 라인
+    city_keys = ["서울", "경기", "인천", "부산", "대구", "대전", "광주",
+                 "울산", "세종", "강원", "충북", "충남", "전북", "전남",
+                 "경북", "경남", "제주"]
+    lines = text.split("\n")
+    best_addr = ""
+    for line in lines:
+        ln = re.sub(r"^\d+\s+", "", line).strip()
+        if any(k in ln for k in city_keys) and ("호" in ln or re.search(r"\d+[-번]", ln)):
+            # 첫 번째 매칭 = 등본 상단의 세대주 주소
+            best_addr = ln
+            break
+    if best_addr:
+        result["주소"] = best_addr
+
+    # 전화번호
+    m = re.search(r"0\d{1,2}-\d{3,4}-\d{4}", text)
+    if m:
+        result["전화번호"] = m.group(0)
+
+    # 등본 발행일
+    발행일 = _extract_발행일(text)
+    if 발행일:
+        result["등본발행일"] = 발행일
+        result["등본"] = 발행일
+
+    # 세대원 수 — "세대원수" 직접 매칭 또는 주민번호 등장 횟수
+    m = re.search(r"세\s*대\s*원\s*수?\s*[:：]?\s*(\d+)", text)
+    if m:
+        result["세대원수"] = int(m.group(1))
+    else:
+        # 폴백: 주민번호 개수 (마스킹 *** 포함)
+        cnt = len(re.findall(r"\d{6}[-–][\d\*]{7}", text))
+        if cnt >= 1:
+            result["세대원수"] = cnt
 
     return result
 
@@ -532,6 +661,8 @@ EXTRACTORS = {
     "선택품목계약서": extract_선택품목계약서,
     "근저당설정계약서": extract_근저당설정계약서,
     "주민등록초본":   extract_주민등록초본,
+    "주민등록등본":   extract_주민등록등본,
+    "인감증명서":     extract_인감증명서,
     "증여계약서":     extract_증여계약서,
     "명의변경계약서": extract_명의변경계약서,
     "거래신고필증":   extract_거래신고필증,
@@ -589,6 +720,7 @@ DOC_NAMES = {
     "발코니확장계약서": "발코니확장계약서",
     "근저당설정계약서": "근저당설정계약서",
     "주민등록초본":     "주민등록초본",
+    "주민등록등본":     "주민등록등본",
     "인감증명서":       "인감증명서",
     "증여계약서":       "증여계약서(권리의무승계)",
     "명의변경계약서":   "명의변경계약서(권리의무승계)",
