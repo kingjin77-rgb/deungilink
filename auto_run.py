@@ -211,41 +211,37 @@ def main():
 
         root_folder, workbook, mapping_name = selected
 
-        from concurrent.futures import ThreadPoolExecutor, as_completed
         from tkinter import messagebox
-        from core.processor import process_unit_folder
+        from core.registry_engine import process_group
         from core.mapping_manager import load_mapping, write_with_mapping
-
-        units = _unit_folders(root_folder)
-        results = [None] * len(units)
-        max_workers = min(5, max(1, len(units)))
-
-        print(f"총 {len(units)}세대 처리 시작")
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_idx = {
-                executor.submit(process_unit_folder, str(unit)): idx
-                for idx, unit in enumerate(units)
-            }
-            done = 0
-            for future in as_completed(future_to_idx):
-                idx = future_to_idx[future]
-                unit = units[idx]
-                try:
-                    results[idx] = future.result()
-                except Exception as exc:
-                    results[idx] = {"_세대": unit.name, "_오류": str(exc)}
-                done += 1
-                print(f"[{done}/{len(units)}] {unit.name}")
+        from core.run_logger import RunLogger
 
         mapping = load_mapping(mapping_name)
+        아파트유형 = mapping.get("_info", {}).get("아파트유형", "분양")
+
+        # 신 엔진: Vision 우선 추출 + 신뢰도 병합 + 세율·비용 (세대 병렬)
+        print("총 세대 처리 시작 (신 엔진)")
+        results = process_group(
+            str(root_folder), meta={"아파트유형": 아파트유형}, workers=5,
+            progress_cb=lambda d, t, n: print(f"[{d}/{t}] {n}"))
+
+        # 구조적 실행 로그
+        run_log = RunLogger("자동실행", 아파트유형=아파트유형, 단지=root_folder.name)
+        run_log.add_all(results)
+        print(run_log.text_report())
+
         has_review_column = "미비서류" in mapping.get("_columns", {})
         records, summary = _mark_for_review(results, has_review_column)
 
+        # 저장 전 백업
         stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         backup_path = workbook.with_name(f"{workbook.stem}_자동실행전백업_{stamp}{workbook.suffix}")
         shutil.copy2(workbook, backup_path)
 
-        write_with_mapping(str(workbook), records, mapping_name)
+        # 진짜 이어쓰기(기존 명단 보존) + 원자적 저장
+        write_with_mapping(str(workbook), records, mapping_name,
+                           output_path=str(workbook), append=True, backup=False)
+        run_log.write(str(BASE_DIR / "output"))
         log_path = _write_log(root_folder, workbook, mapping_name, summary, records, backup_path)
 
         messagebox.showinfo(

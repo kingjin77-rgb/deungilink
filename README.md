@@ -1,20 +1,51 @@
-# 법무법인 등기자동화 시스템 v1.0
-## 잠실르엘 집단등기 자동화 (소유권이전 + 근저당설정)
+# 법무법인 등기자동화 시스템 v2.0
+## 개별 + 집단 등기 자동화 (소유권이전 + 근저당설정)
 
 ---
 
-## 📋 시스템 구성
+## 📋 시스템 구성 (v2 코어)
 
 ```
 registry_auto/
-├── main.py               ← 실행 진입점 (CLI + GUI 선택)
-├── gui.py                ← GUI 대시보드 (tkinter)
-├── config.ini            ← API 키 및 설정
+├── main.py                 ← GUI 진입점 (라이선스 확인 → tkinter)
+├── gui.py                  ← GUI 대시보드
+├── engine_cli.py           ← 통합 CLI (개별/집단, GUI 없이 배치)
+├── auto_run.py             ← 자동실행 (폴더→기본명단 이어쓰기)
+├── config.ini              ← API 키·설정 (config.ini.example 복사)
+├── data/
+│   └── rates_2026.json     ← 세율·법무사 보수표·채권율 (외부화)
 ├── core/
-│   ├── vision_ocr.py     ← Claude Vision API 기반 OCR 엔진
-│   ├── processor.py      ← 세대별 통합 처리 + 병렬처리
-│   └── excel_writer.py   ← 기본명단 Excel 자동 입력
-└── output/               ← 기본명단 출력 폴더
+│   ├── appconfig.py        ← 중앙 설정(API키·모델 ID)
+│   ├── rates.py            ← 세율표 로더
+│   ├── schema.py           ← 서류·세대 통합 스키마
+│   ├── vision_extract.py   ← Claude Vision 구조화 추출 (신 코어)
+│   ├── extractor.py        ← 정규식 추출 (Vision 폴백)
+│   ├── merge.py            ← 신뢰도 우선순위 병합
+│   ├── registry_engine.py  ← 개별+집단 통합 엔진 (개별 = n=1)
+│   ├── tax_calculator.py   ← 취득세 (rates 소비)
+│   ├── cost_calculator.py  ← 등기비용 (rates 소비)
+│   ├── run_logger.py       ← 구조적 실행 로그 (성공/부분/오류)
+│   └── mapping_manager.py  ← 기본명단 Excel 기입 (진짜 이어쓰기)
+├── mappings/               ← 단지별 열 매핑 JSON
+└── output/                 ← 기본명단·실행로그 출력
+```
+
+### v2 핵심 개선
+- **Vision 구조화 추출**: 스캔 PDF를 이미지로 Claude Vision에 전달, 스키마로 서류 분류+추출. 정규식 하드코딩 없이 신규 단지 자동 대응. (API 키 없으면 정규식 폴백)
+- **개별 + 집단 통합**: `registry_engine` 하나로 개별등기(1건)와 집단등기(단지 일괄) 처리.
+- **세율 외부화**: 세율·보수표를 `data/rates_2026.json`으로 분리 → 법령 개정 시 JSON만 수정.
+- **신뢰도 우선순위 병합**: 서류별 신뢰 순위 + Vision confidence로 값 선택.
+- **진짜 이어쓰기**: 기존 명단 보존 + 연번 이어서(덮어쓰기 버그 수정) + 원자적 저장.
+- **구조적 로깅**: 세대별 성공/부분/오류 분류, 실행로그(txt+json).
+
+### 통합 CLI 사용
+```bash
+# 개별등기 1세대 (파일 또는 폴더) — 결과 JSON
+python engine_cli.py individual "서류/104동2302호" --type 분양
+
+# 집단등기 (세대 하위폴더) — 엑셀 이어쓰기 + 실행로그
+python engine_cli.py group "서류/검단웰카운티" \
+    --mapping 검단롯데캐슬넥스티엘 --out 기본명단.xlsx --append --workers 5
 ```
 
 ---

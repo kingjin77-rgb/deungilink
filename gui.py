@@ -1154,9 +1154,10 @@ class RegistryApp(tk.Tk):
             if not out_path:
                 return
 
-            # 기존 파일 없으면 템플릿 복사, 있으면 그대로 이어쓰기
+            # 기존 파일 없으면 템플릿 복사(새로쓰기), 있으면 이어쓰기
             out_p = Path(out_path)
-            if not out_p.exists():
+            existed = out_p.exists()
+            if not existed:
                 if not template or not Path(template).exists():
                     messagebox.showerror("오류", "기본명단 템플릿 파일을 먼저 선택해주세요.")
                     return
@@ -1165,8 +1166,10 @@ class RegistryApp(tk.Tk):
             else:
                 self._status.set(f"기존 파일 이어쓰기: {out_p.name}")
 
-            # 데이터 입력
-            write_with_mapping(out_path, valid, 사무소)
+            # 데이터 입력 — 기존 파일이면 진짜 이어쓰기(+백업), 새 파일이면 새로쓰기
+            write_with_mapping(out_path, valid, 사무소,
+                               output_path=out_path,
+                               append=existed, backup=existed)
 
             # 저장 완료 → 엑셀 바로 열기 (팝업 없음)
             self._status.set(f"✅ 저장 완료 ({len(valid)}건) — {out_p.name}")
