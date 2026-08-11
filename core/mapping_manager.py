@@ -89,10 +89,63 @@ def delete_mapping(사무소명: str):
 
 # ─── 엑셀 입력 (매핑 기반) ───────────────────────────────────────────────────
 
+def _atomic_save(wb, output_path: str):
+    """임시 파일에 저장 후 원자적 교체 — 저장 중 크래시로 원본이 깨지는 것 방지."""
+    import os, tempfile
+    d = os.path.dirname(os.path.abspath(output_path)) or "."
+    fd, tmp = tempfile.mkstemp(suffix=".xlsx", dir=d)
+    os.close(fd)
+    try:
+        wb.save(tmp)
+        os.replace(tmp, output_path)
+    except Exception:
+        if os.path.exists(tmp):
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+        raise
+
+
+def _make_backup(path: str):
+    """기존 파일을 타임스탬프 백업으로 복사. 없으면 None."""
+    import os, shutil
+    from datetime import datetime
+    if not os.path.exists(path):
+        return None
+    p = Path(path)
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    bak = p.with_name(f"{p.stem}_백업_{stamp}{p.suffix}")
+    shutil.copy2(path, bak)
+    return str(bak)
+
+
+def _index_existing_units(ws, dong_col: int, ho_col: int, data_start: int) -> dict:
+    """기존 행을 스캔해 (동,호) → 행번호 인덱스 구성 (이어쓰기 upsert용)."""
+    idx = {}
+    r = data_start
+    max_row = min(ws.max_row, 1048575)
+    while r <= max_row:
+        dv = ws.cell(row=r, column=dong_col).value
+        hv = ws.cell(row=r, column=ho_col).value
+        if dv not in (None, "") and hv not in (None, ""):
+            idx[(str(dv).strip(), str(hv).strip())] = r
+        r += 1
+    return idx
+
+
 def write_with_mapping(template_path: str, records: list[dict],
-                       사무소명: str, output_path: str = None):
+                       사무소명: str, output_path: str = None,
+                       append: bool = False, backup: bool = False):
     """
-    사무소별 매핑으로 기본명단 엑셀에 데이터 입력
+    사무소별 매핑으로 기본명단 엑셀에 데이터 입력.
+
+    append=False (기본): 기존 데이터 클리어 후 처음부터 기입 (단일 실행 저장).
+    append=True:         기존 데이터 보존하고 이어서 기입 —
+                         순차 모드는 다음 빈 행부터 연번 이어서,
+                         동/호 매칭 모드는 같은 동/호는 갱신·새 동/호는 추가(upsert).
+    backup=True:         저장 전 기존 output 파일을 타임스탬프 백업.
+    저장은 항상 원자적(임시파일 → 교체).
     """
     mapping   = load_mapping(사무소명)
     info      = mapping["_info"]
@@ -101,25 +154,28 @@ def write_with_mapping(template_path: str, records: list[dict],
     key_col   = int(mapping.get("_key_column", 1))
 
     output_path = output_path or template_path
-    wb = openpyxl.load_workbook(template_path)
+
+    # 이어쓰기는 기존 output 파일을 기준으로 열어야 데이터가 보존됨
+    load_path = output_path if (append and Path(output_path).exists()) else template_path
+    if backup:
+        _make_backup(output_path)
+
+    wb = openpyxl.load_workbook(load_path)
 
     # 시트 찾기 (정확한 이름 → 부분일치 → active 순서)
     sheet_name = info.get("시트명", "")
     ws = None
-    # 1. 정확한 시트명 매칭
     if sheet_name and sheet_name in wb.sheetnames:
         ws = wb[sheet_name]
-    # 2. 부분 일치 (기본명단 포함)
     if ws is None:
         for s in wb.sheetnames:
             if "기본명단" in s:
                 ws = wb[s]
                 break
-    # 3. 최후 fallback
     if ws is None:
         ws = wb.active
 
-    print(f"  📋 입력 시트: [{ws.title}]")
+    print(f"  📋 입력 시트: [{ws.title}]  (모드: {'이어쓰기' if append else '새로쓰기'})")
 
     data_start = int(info.get("데이터시작행", 2))
     serial_col  = col_map.get("연번")
@@ -130,13 +186,16 @@ def write_with_mapping(template_path: str, records: list[dict],
     preserve_cols = set(mapping.get("_preserve_cols", []))
 
     if key_match:
-        # ── 저장 전 기존 데이터 행 클리어 (중복 방지) ────────────────
-        _clear_data_rows(ws, data_start, formula_cols)
-
-        # 기존 행에서 동/호 인덱스 구성 (클리어 후이므로 항상 비어있음)
         dong_col = int(key_match.get("동", 0))
         ho_col   = int(key_match.get("호", 0))
-        row_index = {}
+
+        if append:
+            # 기존 데이터 보존 + 기존 동/호 인덱스 구성 (upsert)
+            row_index = _index_existing_units(ws, dong_col, ho_col, data_start)
+        else:
+            # 새로쓰기: 기존 데이터 클리어
+            _clear_data_rows(ws, data_start, formula_cols)
+            row_index = {}
 
         for record in records:
             dong = str(record.get("동", "")).strip()
@@ -145,7 +204,6 @@ def write_with_mapping(template_path: str, records: list[dict],
                 continue
             row = row_index.get((dong, ho))
             if not row:
-                # 클리어 후이므로 항상 새 행
                 row = _find_next_row(ws, dong_col, data_start)
                 ws.cell(row=row, column=dong_col).value = dong
                 ws.cell(row=row, column=ho_col).value = ho
@@ -162,13 +220,20 @@ def write_with_mapping(template_path: str, records: list[dict],
                     continue
                 _write_cell(ws, row, col_idx, val, col_idx in amount_cols)
 
-        wb.save(output_path)
-        return
+        _atomic_save(wb, output_path)
+        print(f"✅ [{사무소명}] 저장 완료: {output_path}  ({len(records)}건)")
+        return output_path
 
-    # ── 순차 이어쓰기 모드 — 저장 전 기존 데이터 클리어 ─────────────
-    _clear_data_rows(ws, data_start, formula_cols)
-    start_row   = data_start  # 항상 첫 데이터 행부터
-    last_serial = 0
+    # ── 순차 모드 ────────────────────────────────────────────────
+    if append:
+        # 이어쓰기: 기존 데이터 유지, 다음 빈 행부터, 연번 이어서
+        start_row   = _find_next_row(ws, serial_col or key_col, data_start)
+        last_serial = _get_last_serial(ws, serial_col, data_start) if serial_col else 0
+    else:
+        # 새로쓰기: 기존 데이터 클리어
+        _clear_data_rows(ws, data_start, formula_cols)
+        start_row   = data_start
+        last_serial = 0
 
     for i, record in enumerate(records):
         row = start_row + i
@@ -206,7 +271,7 @@ def write_with_mapping(template_path: str, records: list[dict],
         except:
             pass
 
-    wb.save(output_path)
+    _atomic_save(wb, output_path)
     print(f"✅ [{사무소명}] 저장 완료: {output_path}  ({len(records)}건)")
     return output_path
 

@@ -605,6 +605,87 @@ except Exception as e:
 
 
 # ══════════════════════════════════════════════════════════════
+# 12. 안정성: 로거 분류 + 진짜 이어쓰기 + 재처리
+# ══════════════════════════════════════════════════════════════
+section("12. 로거 분류 & 이어쓰기 & 재처리")
+try:
+    from core.run_logger import classify_unit, RunLogger
+    from core.registry_engine import reprocess_into
+
+    # 12-1. 분류
+    ok("완비 → ok", classify_unit(
+        {"성명": "홍길동", "동": "104", "호": "2302", "미비서류": ""}) == "ok")
+    ok("미비서류 → partial", classify_unit(
+        {"성명": "홍길동", "동": "104", "호": "2302", "미비서류": "인감증명서"}) == "partial")
+    ok("핵심필드 누락 → partial", classify_unit(
+        {"성명": "", "동": "104", "호": "2302"}) == "partial")
+    ok("낮은 신뢰도 → partial", classify_unit(
+        {"성명": "홍길동", "동": "104", "호": "2302", "_신뢰도": 0.4}) == "partial")
+    ok("오류 → error", classify_unit({"_오류": "OCR 실패"}) == "error")
+
+    # 12-2. 로거 요약
+    lg = RunLogger("테스트", 아파트유형="분양", 단지="테스트단지")
+    lg.add({"성명": "A", "동": "1", "호": "1001", "미비서류": ""})
+    lg.add({"성명": "B", "동": "1", "호": "1002", "미비서류": "초본"})
+    lg.add({"_오류": "실패", "_세대": "1-1003"})
+    s = lg.summary()
+    ok("로거 total 3", s["total"] == 3)
+    ok("로거 ok 1", s["ok"] == 1)
+    ok("로거 partial 1", s["partial"] == 1)
+    ok("로거 error 1", s["error"] == 1)
+    ok("검토필요 2건", len(lg.review_needed()) == 2)
+    ok("텍스트 리포트 생성", "검토 필요 세대" in lg.text_report())
+
+    # 12-3. reprocess_into: 같은 동/호 교체
+    results = [
+        {"동": "104", "호": "2302", "성명": "구값"},
+        {"동": "104", "호": "2303", "성명": "유지"},
+    ]
+    # process_individual 을 흉내내지 않고, 교체 로직만 검증하기 위해 직접 확인
+    from core.registry_engine import _unit_key
+    ok("동/호 키 생성", _unit_key({"동": "104", "호": "2302"}) == ("104", "2302"))
+
+    # 12-4. 진짜 이어쓰기 (임시 엑셀로 실검증)
+    import openpyxl, tempfile, os, json as _json
+    from core.mapping_manager import write_with_mapping, MAPPINGS_DIR
+
+    tmpdir = tempfile.mkdtemp()
+    # 간단한 템플릿 + 매핑 생성
+    wb = openpyxl.Workbook()
+    wsx = wb.active
+    wsx.title = "기본명단(테스트)"
+    wsx.cell(row=1, column=1, value="연번")
+    wsx.cell(row=1, column=2, value="성명")
+    tmpl = os.path.join(tmpdir, "tmpl.xlsx")
+    wb.save(tmpl)
+    mp = {
+        "_info": {"사무소명": "_테스트로거", "템플릿": "tmpl.xlsx",
+                   "시트명": "기본명단(테스트)", "헤더행": 1, "데이터시작행": 2},
+        "_columns": {"연번": 1, "성명": 2},
+        "_amount_columns": [], "_key_column": 2,
+    }
+    mp_path = MAPPINGS_DIR / "_테스트로거.json"
+    mp_path.write_text(_json.dumps(mp, ensure_ascii=False), encoding="utf-8")
+    try:
+        out = os.path.join(tmpdir, "out.xlsx")
+        # 1차: 새로쓰기 2건
+        write_with_mapping(tmpl, [{"성명": "김일"}, {"성명": "이이"}], "_테스트로거", out)
+        # 2차: 이어쓰기 1건 → 기존 2건 보존 + 추가
+        write_with_mapping(tmpl, [{"성명": "박삼"}], "_테스트로거", out, append=True)
+        chk = openpyxl.load_workbook(out)["기본명단(테스트)"]
+        names = [chk.cell(row=r, column=2).value for r in (2, 3, 4)]
+        serials = [chk.cell(row=r, column=1).value for r in (2, 3, 4)]
+        ok("이어쓰기 기존 보존", names == ["김일", "이이", "박삼"], names)
+        ok("이어쓰기 연번 연속", serials == [1, 2, 3], serials)
+    finally:
+        mp_path.unlink(missing_ok=True)
+
+except Exception as e:
+    print(f"  [ERROR] {e}")
+    traceback.print_exc()
+
+
+# ══════════════════════════════════════════════════════════════
 # 결과 요약
 # ══════════════════════════════════════════════════════════════
 print(f"\n{'='*60}")

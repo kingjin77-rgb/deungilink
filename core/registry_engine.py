@@ -166,3 +166,32 @@ def process_group(root: str, meta: dict = None, workers: int = 5,
                     pass
 
     return [r for r in results if r]
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  5. 세대별 재처리 (오류/부분 세대만 다시)
+# ══════════════════════════════════════════════════════════════════════
+
+def _unit_key(u: dict) -> tuple:
+    return (str(u.get("동", "")).strip(), str(u.get("호", "")).strip())
+
+
+def reprocess_into(results: list, path: str, meta: dict = None,
+                   use_vision: bool = True) -> list:
+    """
+    한 세대를 재처리하여 기존 결과 리스트에서 같은 동/호 항목을 교체.
+    같은 동/호가 없으면 추가. 검토 필요 세대를 다시 돌릴 때 사용.
+    """
+    new_unit = process_individual(path, meta, use_vision=use_vision)
+    key = _unit_key(new_unit)
+    replaced = False
+    out = []
+    for u in results:
+        if key != ("", "") and _unit_key(u) == key:
+            out.append(new_unit)
+            replaced = True
+        else:
+            out.append(u)
+    if not replaced:
+        out.append(new_unit)
+    return out
