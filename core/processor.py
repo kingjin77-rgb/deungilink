@@ -43,26 +43,12 @@ def merge_unit_records(records: list[dict]) -> dict:
     - 승계 서류 여러 건: 날짜 최신 1건만
     - 나머지: 필드별 우선순위 + 후순위 덮어쓰기 방식
     """
-    transfer_records = []   # 승계 서류만 별도 수집
-    other_records = []
+    transfer_records = [r for r in records
+                        if r.get("doc_type", "") in TRANSFER_DOC_TYPES]
 
-    for r in records:
-        doc_type = r.get("doc_type", "")
-        if doc_type in TRANSFER_DOC_TYPES:
-            transfer_records.append(r)
-        else:
-            other_records.append(r)
-
-    # 일반 서류 병합 (먼저 들어온 값 보존, 빈 값이면 채움)
-    merged = {}
-    for rec in other_records:
-        for k, v in rec.items():
-            if k.startswith("_"):
-                continue
-            if v in (None, "", 0) and k in merged:
-                continue  # 기존 값 보존
-            if v not in (None, ""):
-                merged[k] = v
+    # 필드별 신뢰도 우선순위 병합 (전체 서류 대상) — core/merge.py
+    from core.merge import merge_documents
+    merged = merge_documents(records)
 
     # ── 승계 횟수 + 유형 자동 분석 ────────────────────────────────────────
     from core.extractor import count_and_classify_successions, detect_succession_type
