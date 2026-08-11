@@ -478,6 +478,68 @@ except Exception as e:
 
 
 # ══════════════════════════════════════════════════════════════
+# 10. Vision 구조화 추출 (순수 함수)
+# ══════════════════════════════════════════════════════════════
+section("10. Vision 구조화 추출 (schema / vision_extract)")
+try:
+    from core.vision_extract import (build_extraction_prompt, parse_vision_json,
+                                       normalize_value, normalize_record,
+                                       documents_to_records)
+
+    # 10-1. 프롬프트 생성
+    p = build_extraction_prompt()
+    ok("프롬프트에 분양계약서 포함", "분양계약서" in p)
+    ok("프롬프트에 채권최고액 필드", "채권최고액" in p)
+    ok("프롬프트에 JSON 형식 지시", "documents" in p and "confidence" in p)
+    p2 = build_extraction_prompt(["인감증명서"])
+    ok("부분 유형 프롬프트", "인감증명서" in p2 and "분양계약서" not in p2)
+
+    # 10-2. JSON 파싱 견고성
+    ok("순수 JSON 파싱",
+       parse_vision_json('{"documents":[{"doc_type":"인감증명서"}]}')["documents"][0]["doc_type"] == "인감증명서")
+    fenced = '```json\n{"documents":[{"doc_type":"분양계약서"}]}\n```'
+    ok("코드펜스 JSON 파싱", parse_vision_json(fenced)["documents"][0]["doc_type"] == "분양계약서")
+    noisy = '분석 결과입니다:\n{"documents":[]}\n감사합니다'
+    ok("앞뒤 잡텍스트 제거", parse_vision_json(noisy)["documents"] == [])
+    ok("깨진 JSON → 빈 documents", parse_vision_json("이건 JSON이 아님")["documents"] == [])
+    ok("빈 문자열 → 빈 documents", parse_vision_json("")["documents"] == [])
+
+    # 10-3. 값 정규화
+    ok("int 콤마·원 제거", normalize_value("채권최고액", "1,850,000,000원") == 1850000000)
+    ok("float 면적", normalize_value("전용면적", "84.9800") == 84.98)
+    ok("date YYYY-MM-DD 유지", normalize_value("분양계약일", "2024-06-15") == "2024-06-15")
+    ok("date 한글 정규화", normalize_value("분양계약일", "2024년 6월 15일") == "2024-06-15")
+    ok("date 점 형식", normalize_value("초본발행일", "2024.06.15") == "2024-06-15")
+    ok("str 공백정리", normalize_value("성명", "  홍길동  ") == "홍길동")
+    ok("None → None", normalize_value("성명", None) is None)
+
+    # 10-4. 레코드 정규화 (빈 값 제거)
+    nr = normalize_record({"성명": "홍길동", "부가세": "0", "주소": "", "채권최고액": "500,000,000"})
+    ok("빈 문자열 필드 제거", "주소" not in nr)
+    ok("정규화된 금액", nr["채권최고액"] == 500000000)
+
+    # 10-5. documents → records
+    parsed = {"documents": [
+        {"doc_type": "분양계약서",
+         "fields": {"동": "104", "호": "2302", "분양대금": "1,850,000,000", "분양계약일": "2023년 5월 10일"},
+         "confidence": 0.95},
+        {"doc_type": "인감증명서",
+         "fields": {"성명": "이서준", "인감발행일": "2024.06.20"},
+         "confidence": 0.9},
+    ]}
+    recs = documents_to_records(parsed)
+    ok("2개 서류 레코드 생성", len(recs) == 2)
+    ok("분양계약서 금액 정규화", recs[0]["분양대금"] == 1850000000)
+    ok("분양계약서 날짜 정규화", recs[0]["분양계약일"] == "2023-05-10")
+    ok("confidence 보존", recs[0]["_confidence"] == 0.95)
+    ok("인감 발행일 정규화", recs[1]["인감발행일"] == "2024-06-20")
+
+except Exception as e:
+    print(f"  [ERROR] {e}")
+    traceback.print_exc()
+
+
+# ══════════════════════════════════════════════════════════════
 # 결과 요약
 # ══════════════════════════════════════════════════════════════
 print(f"\n{'='*60}")
