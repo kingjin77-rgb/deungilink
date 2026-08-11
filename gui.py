@@ -835,9 +835,11 @@ class RegistryApp(tk.Tk):
         self.after(300, self._show_license_info)
 
     def _open_common_file(self):
-        """공통파일 관리 다이얼로그 열기"""
-        사무소 = self._사무소.get().strip()
-        CommonFileDialog(self, 사무소명=사무소 if 사무소 else None)
+        """공통파일 관리 다이얼로그 열기 (준비 중 — 크래시 방지 처리)"""
+        messagebox.showinfo(
+            "공통파일 관리",
+            "공통파일 관리 기능은 준비 중입니다.\n\n"
+            "현재는 각 단지 매핑(⚙ 매핑 관리)에서 템플릿을 지정해 사용하세요.")
 
     def _show_license_info(self):
         try:
@@ -1265,12 +1267,6 @@ class RegistryApp(tk.Tk):
 
         threading.Thread(target=_run, daemon=True).start()
 
-    def _save_daejikwon(self):
-        """대지권 등기부등본 OCR → 주소명단 독립 처리 다이얼로그"""
-        DaejikwonDialog(self)
-
-    # ── 대지권 처리 다이얼로그 ────────────────────────────────────────────────
-
     def _send_chat(self):
         """사용자 채팅 입력 → 사무원 채팅창에 표시"""
         try:
@@ -1290,16 +1286,14 @@ class RegistryApp(tk.Tk):
     def _ai_chat_reply(self, question: str):
         """Claude API 실제 응답"""
         try:
-            import anthropic, configparser
-            from pathlib import Path as _Path
-            cfg = configparser.ConfigParser()
-            cfg.read(str(_Path(__file__).parent / "config.ini"), encoding="utf-8")
-            key = cfg.get("claude","api_key",fallback="") or cfg.get("api","api_key",fallback="")
-            if not key or "여기에" in key:
+            import anthropic
+            from core.appconfig import get_api_key, get_model
+            key = get_api_key()
+            if not key:
                 raise ValueError("API 키 없음")
             client = anthropic.Anthropic(api_key=key)
             r = client.messages.create(
-                model="claude-opus-4-5", max_tokens=300,
+                model=get_model(), max_tokens=300,
                 system="당신은 집단등기 자동화 시스템 AI입니다. 한국어로 간결하게 답하세요.",
                 messages=[{"role":"user","content":question}]
             )

@@ -22,7 +22,8 @@ def _key():
 
 
 def _model():
-    return _cfg().get("claude", "model", fallback="claude-opus-4-5")
+    from core.appconfig import get_model
+    return get_model()
 
 
 def _img_to_b64(img) -> str:

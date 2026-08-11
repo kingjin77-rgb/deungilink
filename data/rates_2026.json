@@ -1,0 +1,117 @@
+{
+  "_meta": {
+    "version": "2026.0",
+    "effective_date": "2026-01-01",
+    "source": "대한법무사협회 표준보수규정 / 지방세법 / 인지세법",
+    "note": "기존 코드 상수를 그대로 외부화한 값입니다. 법령·보수표 개정 시 이 파일만 수정하면 전체 계산에 반영됩니다.",
+    "verify_2026": [
+      "multi_home 취득세율(조정/비조정) — 2026년 다주택 중과 정책 확인 필요",
+      "first_time_buyer_deduction — 생애최초 감면 한도 최신 확인 필요",
+      "acquisition_tax.rural_tax — 농특세 기준면적/세율 확인 필요",
+      "fee_transfer_base / fee_mortgage_base — 법무사 표준보수표 개정 여부 확인 필요"
+    ]
+  },
+
+  "acquisition_tax": {
+    "single_home": {
+      "low_threshold": 600000000,
+      "high_threshold": 900000000,
+      "low_rate": 0.01,
+      "high_rate": 0.03,
+      "progressive_formula": { "mult": 2, "div": 300000000, "sub": 3, "round_decimals": 2 }
+    },
+    "first_time_buyer_deduction": 2000000,
+    "multi_home": {
+      "adjusted": { "2": 0.08, "3plus": 0.12 },
+      "non_adjusted": { "2": 0.08, "3": 0.08, "4plus": 0.12 }
+    },
+    "education_tax_rate": 0.2,
+    "rural_tax": { "exempt_area_max": 85, "rate": 0.002 }
+  },
+
+  "bond": {
+    "transfer_purchase_rate_small": 0.021,
+    "transfer_purchase_rate_large": 0.026,
+    "transfer_area_threshold": 85,
+    "mortgage_purchase_rate": 0.012,
+    "discount_rate": 0.017
+  },
+
+  "stamp_duty": {
+    "transfer_brackets": [
+      [10000000, 0],
+      [50000000, 20000],
+      [100000000, 70000],
+      [1000000000, 150000],
+      [null, 350000]
+    ],
+    "mortgage_brackets": [
+      [50000000, 0],
+      [100000000, 70000],
+      [1000000000, 150000],
+      [null, 350000]
+    ]
+  },
+
+  "fee_transfer_base": [
+    [10000000, 100000],
+    [20000000, 120000],
+    [40000000, 152000],
+    [60000000, 182000],
+    [80000000, 208000],
+    [100000000, 233000],
+    [200000000, 288000],
+    [300000000, 336000],
+    [500000000, 399000],
+    [700000000, 450000],
+    [1000000000, 504000],
+    [1500000000, 555000],
+    [2000000000, 592000],
+    [null, 592000]
+  ],
+
+  "fee_mortgage_base": [
+    [10000000, 70000],
+    [20000000, 85000],
+    [40000000, 108000],
+    [60000000, 129000],
+    [80000000, 148000],
+    [100000000, 166000],
+    [200000000, 205000],
+    [300000000, 239000],
+    [500000000, 283000],
+    [700000000, 319000],
+    [1000000000, 357000],
+    [1500000000, 394000],
+    [2000000000, 420000],
+    [null, 420000]
+  ],
+
+  "fee_progressive": [
+    [100000000, 200000000, 0.0009],
+    [200000000, 500000000, 0.0007],
+    [500000000, 1000000000, 0.0005],
+    [1000000000, 2000000000, 0.0003],
+    [2000000000, null, 0.00016]
+  ],
+  "fee_progressive_start": 100000000,
+  "fee_vat_rate": 0.1,
+
+  "mortgage_registration": { "license_tax_rate": 0.002, "education_tax_rate": 0.2 },
+
+  "trust_cancellation": {
+    "license_tax": 3000,
+    "education_tax": 600,
+    "revenue_stamp": 3000,
+    "fee": 50000,
+    "vat_rate": 0.1
+  },
+
+  "fixed_costs": {
+    "revenue_stamp_transfer": 15000,
+    "revenue_stamp_mortgage": 15000,
+    "transport": 0,
+    "certificate": 0,
+    "delivery": 0
+  }
+}
