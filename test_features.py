@@ -819,6 +819,64 @@ except Exception as e:
 
 
 # ══════════════════════════════════════════════════════════════
+# 14. 신규 추출기: 발코니확장계약서 / 가족관계증명서 / 위임장
+# ══════════════════════════════════════════════════════════════
+section("14. 발코니확장계약서 · 가족관계증명서 · 위임장 추출기")
+try:
+    from core.extractor import (classify_document, extract_발코니확장계약서,
+                                   extract_가족관계증명서, extract_위임장,
+                                   EXTRACTORS)
+
+    # 14-1. 분류
+    text_balcony = "발코니확장계약서\n\n발코니 확장 공사비 : 18,000,000원 (VAT 포함)"
+    ok("발코니확장계약서 분류", classify_document(text_balcony) == "발코니확장계약서",
+       classify_document(text_balcony))
+
+    text_family = "가족관계증명서\n\n본인 홍길동 900101-1234567 남\n자녀 홍자녀 200101-3123456 여"
+    ok("가족관계증명서 분류", classify_document(text_family) == "가족관계증명서")
+
+    text_poa = "위 임 장\n\n위임인 : 홍길동 (인)\n주민등록번호 : 900101-1234567\n수임인 : 김법무사"
+    ok("위임장 분류", classify_document(text_poa) == "위임장")
+
+    # 14-2. 발코니확장계약서 추출
+    r1 = extract_발코니확장계약서(text_balcony)
+    ok("발코니확장 금액 추출", r1.get("발코니금액") == 18000000, r1.get("발코니금액"))
+
+    # 발코니 확장비용 라벨 없이 총액만 있는 경우 (폴백 패턴)
+    text_balcony2 = "발코니확장 공급계약서\n\n계약금액 : 15,500,000원"
+    r1b = extract_발코니확장계약서(text_balcony2)
+    ok("발코니확장 폴백(계약금액) 추출", r1b.get("발코니금액") == 15500000, r1b.get("발코니금액"))
+
+    # 14-3. 가족관계증명서 추출
+    r2 = extract_가족관계증명서(text_family)
+    ok("가족관계증명서 본인 성명", r2.get("성명") == "홍길동", r2.get("성명"))
+    ok("가족관계증명서 주민번호", r2.get("주민등록번호") == "900101-1234567")
+
+    # 14-4. 위임장 추출
+    r3 = extract_위임장(text_poa)
+    ok("위임장 위임인 성명", r3.get("성명") == "홍길동", r3.get("성명"))
+
+    # 위임인 라벨 없이 성명만 있는 경우 (폴백)
+    text_poa2 = "위임장\n\n성명 : 이영희\n연락처 : 010-1111-2222"
+    r3b = extract_위임장(text_poa2)
+    ok("위임장 성명 폴백 추출", r3b.get("성명") == "이영희", r3b.get("성명"))
+
+    # 14-5. EXTRACTORS 등록 확인
+    ok("EXTRACTORS 에 발코니확장계약서 등록", "발코니확장계약서" in EXTRACTORS)
+    ok("EXTRACTORS 에 가족관계증명서 등록", "가족관계증명서" in EXTRACTORS)
+    ok("EXTRACTORS 에 위임장 등록", "위임장" in EXTRACTORS)
+
+    # 14-6. merge 우선순위에 이미 반영되어 있는지 확인 (Phase 3 에서 선반영됨)
+    from core.merge import FIELD_SOURCE_PRIORITY
+    ok("발코니금액 우선순위에 발코니확장계약서 포함",
+       "발코니확장계약서" in FIELD_SOURCE_PRIORITY.get("발코니금액", []))
+
+except Exception as e:
+    print(f"  [ERROR] {e}")
+    traceback.print_exc()
+
+
+# ══════════════════════════════════════════════════════════════
 # 결과 요약
 # ══════════════════════════════════════════════════════════════
 print(f"\n{'='*60}")

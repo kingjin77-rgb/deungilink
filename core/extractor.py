@@ -155,6 +155,30 @@ def extract_선택품목계약서(text: str) -> dict:
     return result
 
 
+# ── 발코니확장계약서 (선택품목계약서와 별도로 단독 체결되는 경우) ─────────────
+
+def extract_발코니확장계약서(text: str) -> dict:
+    """
+    분양계약과 별도로 체결되는 발코니 확장공사 전용 계약서.
+    선택품목계약서에 발코니가 포함된 경우와 달리, 이 서류는 발코니
+    확장비용 단독 계약서이므로 계약 총액을 발코니금액으로 매핑한다.
+    """
+    result = {}
+    patterns = [
+        r"발코니\s*확장\s*(?:비용|공사비|대금)[^\n]*?([0-9,]{7,})\s*원?",
+        r"발코니[^\n]*?([0-9,]{7,})\s*원?\s*\(?VAT\s*포함\)?",
+        r"(?:계약\s*금액|총\s*(?:계약)?\s*금액|공급\s*금액)[:\s]*([0-9,]{7,})\s*원?",
+        r"발코니[^\n]*?([0-9,]{7,})",
+    ]
+    for p in patterns:
+        m = re.search(p, text)
+        if m:
+            result["발코니금액"] = clean_amount(m.group(1))
+            break
+
+    return result
+
+
 # ── 근저당설정계약서 ──────────────────────────────────────────────────────────
 
 def extract_근저당설정계약서(text: str) -> dict:
@@ -406,6 +430,44 @@ def extract_주민등록등본(text: str) -> dict:
         cnt = len(re.findall(r"\d{6}[-–][\d\*]{7}", text))
         if cnt >= 1:
             result["세대원수"] = cnt
+
+    return result
+
+
+# ── 가족관계증명서 ────────────────────────────────────────────────────────────
+
+def extract_가족관계증명서(text: str) -> dict:
+    """
+    가족관계증명서 → 대상자(본인) 성명·주민등록번호 추출.
+    상속등기 등에서 상속인 확인용으로 제출되는 서류.
+    """
+    result = {}
+
+    # "본인" 행의 성명 우선 (가족관계증명서 표 첫 행은 대상자 본인)
+    m = re.search(r"본\s*인\s+([가-힣]{2,5})", text)
+    if not m:
+        m = re.search(r"성\s*명\s*[:：]?\s*([가-힣]{2,5})", text)
+    if m:
+        result["성명"] = m.group(1).strip()
+
+    m = re.search(r"(\d{6}[-–]\d{7})", text)
+    if m:
+        result["주민등록번호"] = m.group(1).replace("–", "-")
+
+    return result
+
+
+# ── 위임장 ────────────────────────────────────────────────────────────────────
+
+def extract_위임장(text: str) -> dict:
+    """위임장 → 위임인(본인) 성명 추출. 등기신청을 위임한 당사자 확인용."""
+    result = {}
+
+    m = re.search(r"위\s*임\s*인\s*[:：]?\s*([가-힣]{2,5})", text)
+    if not m:
+        m = re.search(r"성\s*명\s*[:：]?\s*([가-힣]{2,5})", text)
+    if m:
+        result["성명"] = m.group(1).strip()
 
     return result
 
@@ -666,10 +728,13 @@ def extract_등기부등본(text: str) -> dict:
 EXTRACTORS = {
     "분양계약서":     extract_분양계약서,
     "선택품목계약서": extract_선택품목계약서,
+    "발코니확장계약서": extract_발코니확장계약서,
     "근저당설정계약서": extract_근저당설정계약서,
     "주민등록초본":   extract_주민등록초본,
     "주민등록등본":   extract_주민등록등본,
     "인감증명서":     extract_인감증명서,
+    "가족관계증명서": extract_가족관계증명서,
+    "위임장":         extract_위임장,
     "증여계약서":     extract_증여계약서,
     "명의변경계약서": extract_명의변경계약서,
     "거래신고필증":   extract_거래신고필증,
