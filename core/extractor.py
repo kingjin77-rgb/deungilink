@@ -15,6 +15,13 @@ def clean_amount(s: str) -> int:
     except:
         return 0
 
+def _to_float_safe(s) -> "float | str":
+    """면적 등 소수 필드를 float 로 변환. 실패 시 원본 문자열 보존(데이터 유실 방지)."""
+    try:
+        return float(str(s).replace(",", "").strip())
+    except (ValueError, TypeError):
+        return s
+
 def normalize_date(s: str) -> str:
     """날짜 정규화 → YYYY-MM-DD"""
     s = re.sub(r"[년.\s]", "-", s).replace("월", "-").replace("일", "").strip()
@@ -83,21 +90,21 @@ def extract_분양계약서(text: str) -> dict:
         result["동"] = m.group(1)
         result["호"] = m.group(2)
 
-    # 전용면적 (소수점 4자리)
+    # 전용면적 (소수점 4자리) — float 로 반환 (엑셀 기입 시 숫자로 취급되도록)
     m = re.search(r"전용\s*면적\s*[:\s]*([0-9.]+)\s*㎡", text)
     if not m:
         m = re.search(r"([5-9]\d\.[0-9]{4})\s*㎡", text)
     if m:
-        result["전용면적"] = m.group(1)
+        result["전용면적"] = _to_float_safe(m.group(1))
 
     # 대지지분
     m = re.search(r"대지\s*(?:지분|면적)\s*[:\s]*([0-9.]+)\s*㎡", text)
     if not m:
         nums = re.findall(r"(\d{2,3}\.\d{4})", text)
         if len(nums) >= 2:
-            result["대지지분"] = nums[1]
+            result["대지지분"] = _to_float_safe(nums[1])
     else:
-        result["대지지분"] = m.group(1)
+        result["대지지분"] = _to_float_safe(m.group(1))
 
     # 분양계약일 (계약금 납부 기한 직전 날짜)
     m = re.search(r"계약금.*?(\d{4}[.\-년]\s*\d{1,2}[.\-월]\s*\d{1,2})", text, re.S)
@@ -569,7 +576,7 @@ def extract_등기부등본(text: str) -> dict:
             except ValueError:
                 pass
     if 건물면적:
-        result["전용면적"] = 건물면적
+        result["전용면적"] = _to_float_safe(건물면적)
 
     # ── 건물등기 접수일자 (소유권이전등기 접수일) ────────────────────────────
     이전_dates = []

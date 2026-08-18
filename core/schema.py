@@ -26,6 +26,45 @@ FIELD_TYPES = {
     "거래신고필증번호": "str", "거래가액": "int",
     "건물등기접수일자": "date", "신탁건수": "int", "국적": "str",
     "공동명의자": "str",
+
+    # ── 기본명단 전체 필드 (processor 계산결과 + 매핑 JSON 전 사무소 유니버스) ──
+    # 엑셀 기입 시 타입 오류(날짜/숫자가 텍스트로 들어가 다운스트림 수식이
+    # 깨지는 문제)를 막기 위해, 실제 기본명단에 쓰이는 필드는 전부 여기 등록한다.
+    "연번": "int", "주택수": "int", "감면여부": "str",
+    "동호수": "str", "미비서류": "str", "실거래일련번호": "str",
+    "서류수령일": "date", "잔금일": "date",
+    "대출은행2": "str", "대출은행3": "str",
+    "대출지점2": "str", "대출지점3": "str",
+    "채권최고액2": "int", "채권최고액3": "int",
+    "전화번호2": "str",
+    "주민번호1": "str", "주민번호앞자리": "str", "명의자1": "str",
+    "프리미엄": "int",
+    # 발행일 짧은 별칭 (extract_주민등록초본/인감증명서/등본이 동시에 채움)
+    "초본": "date", "인감": "date", "등본": "date",
+    "초본발급일": "date", "인감발급일": "date", "등본발급일": "date",
+    # 취득세
+    "취득세과표": "int", "취득세": "int", "교육세": "int",
+    "농특세": "int", "취득세합계": "int", "기준시가": "int",
+    "분양대금과표": "int", "옵션1과표": "int", "옵션2과표": "int",
+    # 등기비용
+    "채권매입금액_이전": "int", "채권할인금액_이전": "int",
+    "채권매입금액_설정": "int", "채권할인금액_설정": "int",
+    "인지대_이전": "int", "인지대_설정": "int",
+    "증지대_이전": "int", "증지대_설정": "int",
+    "교통비": "int", "제증명료": "int", "송달료": "int",
+    "보수료": "int", "보수료_설정": "int",
+    "부가세_이전": "int", "부가세_설정": "int",
+    "설정비용합계": "int", "설정비용1순위": "int",
+    "신탁말소비용": "int", "신탁말소_등록면허세": "int", "신탁말소_교육세": "int",
+    "신탁말소_증지대": "int", "신탁말소_보수료": "int", "신탁말소_부가세": "int",
+    "이전비용합계": "int", "등기비용총합계": "int", "등기비용합계_AL": "int",
+    "등록세_설정": "int", "교육세_설정": "int",
+    # 비용요약(FJ~FQ)
+    "비용요약_등기비용합계": "int", "비용요약_취득세": "int",
+    "비용요약_인지대": "int", "비용요약_이전채권비": "int",
+    "비용요약_설정채권비": "int", "비용요약_수수료": "int", "비용요약_부가세": "int",
+    # 승계
+    "승계횟수": "int",
 }
 
 # ── 필드별 자연어 설명 (Vision 프롬프트용) ───────────────────────────────────
@@ -94,3 +133,83 @@ def fields_for(doc_type: str) -> list:
 def field_type(field: str) -> str:
     """필드의 타입 (str/int/float/date). 미정의는 str."""
     return FIELD_TYPES.get(field, "str")
+
+
+# ══════════════════════════════════════════════════════════════════════
+#  Excel 셀 기입용 타입 변환 (to_excel_value)
+# ══════════════════════════════════════════════════════════════════════
+#  기본명단 엑셀에 값을 쓸 때, 필드 타입에 맞는 실제 파이썬 타입(int/float/
+#  date)으로 변환한다. 문자열로 강제 변환해서 쓰면 다운스트림 수식
+#  (SUM/DATEDIF/조건부서식 등)이 깨지므로, 반드시 이 함수를 거쳐야 한다.
+#
+#  변환 실패 시에는 예외를 던지지 않고 "안전한 형태"로 원본을 보존한다
+#  (조용히 0/빈값으로 만들어 데이터를 날리지 않기 위함).
+
+import re as _re
+from datetime import date as _date, datetime as _datetime
+
+
+def to_excel_value(field: str, value, force_type: str = None):
+    """
+    필드명 + 원본 값 → Excel 셀에 쓸 파이썬 값.
+
+    force_type: "int" 등으로 강제 지정하면 필드 타입 대신 이를 사용한다.
+                (매핑 JSON 의 _amount_columns 오버라이드 — 해당 열이
+                 스키마에 없는 필드라도 숫자로 취급해야 할 때 사용)
+
+    반환: int | float | datetime.date | str | None(빈 값)
+    """
+    if value is None:
+        return None
+    if isinstance(value, str) and value.strip() == "":
+        return None
+
+    t = force_type or field_type(field)
+
+    if t == "int":
+        if isinstance(value, bool):
+            return int(value)
+        if isinstance(value, (int, float)):
+            return int(value)
+        try:
+            cleaned = _re.sub(r"[^\d\-]", "", str(value))
+            if cleaned in ("", "-"):
+                return 0
+            return int(cleaned)
+        except (ValueError, TypeError):
+            return value  # 변환 불가 → 원본 보존 (데이터 유실 방지)
+
+    if t == "float":
+        if isinstance(value, (int, float)):
+            return float(value)
+        try:
+            cleaned = str(value).replace(",", "").strip()
+            return float(cleaned)
+        except (ValueError, TypeError):
+            return value
+
+    if t == "date":
+        if isinstance(value, _datetime):
+            return value.date()
+        if isinstance(value, _date):
+            return value
+        s = str(value).strip()
+        m = _re.match(r"^(\d{4})-(\d{1,2})-(\d{1,2})", s)
+        if m:
+            try:
+                return _date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+            except ValueError:
+                return s
+        # 다른 표기(YYYY년 MM월 DD일 등) → extractor.normalize_date 로 재시도
+        try:
+            from core.extractor import normalize_date
+            norm = normalize_date(s)
+            m2 = _re.match(r"^(\d{4})-(\d{2})-(\d{2})$", norm)
+            if m2:
+                return _date(int(m2.group(1)), int(m2.group(2)), int(m2.group(3)))
+        except Exception:
+            pass
+        return s  # 정규화 실패 → 원본 문자열 보존 (크래시 방지)
+
+    # str / 기타
+    return str(value)

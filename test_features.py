@@ -686,6 +686,139 @@ except Exception as e:
 
 
 # ══════════════════════════════════════════════════════════════
+# 13. 엑셀 입력 타입 정확성 (실사용 오류의 근본원인 회귀방지)
+# ══════════════════════════════════════════════════════════════
+section("13. 엑셀 입력 타입 정확성 — to_excel_value & 실기입 검증")
+try:
+    from datetime import date as _date
+    from core.schema import to_excel_value
+
+    # 13-1. to_excel_value 순수 함수 — 타입별 변환
+    ok("금액 콤마문자열 → int", to_excel_value("분양대금", "450,000,000") == 450000000)
+    ok("금액 이미 int → int 유지", to_excel_value("취득세", 12345) == 12345)
+    ok("면적 콤마없는 문자열 → float", to_excel_value("전용면적", "84.9800") == 84.98)
+    ok("면적 이미 float → float 유지", to_excel_value("대지지분", 38.6481) == 38.6481)
+    ok("날짜 YYYY-MM-DD 문자열 → date 객체",
+       to_excel_value("승계일", "2024-06-15") == _date(2024, 6, 15))
+    ok("날짜 타입 결과가 실제 date 인스턴스",
+       isinstance(to_excel_value("초본발행일", "2024-06-15"), _date))
+    ok("날짜 한글 표기 → date 객체",
+       to_excel_value("근저당설정계약일", "2024년 6월 15일") == _date(2024, 6, 15))
+    ok("텍스트 필드 → str 그대로", to_excel_value("성명", "홍길동") == "홍길동")
+    ok("빈 문자열 → None", to_excel_value("성명", "") is None)
+    ok("None → None", to_excel_value("성명", None) is None)
+    ok("force_type=int 오버라이드 (스키마에 없는 필드도 숫자화)",
+       to_excel_value("임의필드", "1,000", force_type="int") == 1000)
+    ok("타입 없는 필드(미등록) → str 기본값",
+       to_excel_value("완전히새로운필드", 123) == "123")
+    ok("변환 실패 날짜는 원본 보존(크래시 없음)",
+       to_excel_value("승계일", "알수없음") == "알수없음")
+
+    # 13-2. 실제 엑셀에 기입 후 재로드 — 셀 값의 "진짜 타입" 검증
+    #      (문자열로 잘못 들어가면 다운스트림 SUM/DATEDIF/조건부서식이 깨짐)
+    import openpyxl as _oxl
+    tmpdir2 = tempfile.mkdtemp()
+    wb2 = _oxl.Workbook()
+    wsx2 = wb2.active
+    wsx2.title = "기본명단(타입테스트)"
+    headers = ["연번", "성명", "전용면적", "분양대금", "승계일", "채권최고액", "미비서류"]
+    for i, h in enumerate(headers, start=1):
+        wsx2.cell(row=1, column=i, value=h)
+    tmpl2 = os.path.join(tmpdir2, "tmpl2.xlsx")
+    wb2.save(tmpl2)
+
+    mp2 = {
+        "_info": {"사무소명": "_타입테스트", "템플릿": "tmpl2.xlsx",
+                   "시트명": "기본명단(타입테스트)", "헤더행": 1, "데이터시작행": 2},
+        "_columns": {"연번": 1, "성명": 2, "전용면적": 3, "분양대금": 4,
+                      "승계일": 5, "채권최고액": 6, "미비서류": 7},
+        # 분양대금·채권최고액만 amount_columns 로 지정(실사무소 매핑처럼)
+        # → 전용면적·승계일은 스키마 타입(float/date) 판단에만 의존해야 함
+        "_amount_columns": [4, 6],
+        "_key_column": 2,
+    }
+    mp_path2 = MAPPINGS_DIR / "_타입테스트.json"
+    mp_path2.write_text(_json.dumps(mp2, ensure_ascii=False), encoding="utf-8")
+    try:
+        out2 = os.path.join(tmpdir2, "out2.xlsx")
+        record = {
+            "성명": "이서준",
+            "전용면적": "84.9800",              # 문자열로 들어와도 float 이어야 함
+            "분양대금": "1,850,000,000",         # 콤마문자열 → int
+            "승계일": "2024-06-15",              # 문자열 → 진짜 date 객체
+            "채권최고액": 960000000,             # 이미 int
+            "미비서류": "",                       # 완비
+        }
+        write_with_mapping(tmpl2, [record], "_타입테스트", out2)
+
+        chk2 = _oxl.load_workbook(out2)["기본명단(타입테스트)"]
+        v_area   = chk2.cell(row=2, column=3).value
+        v_price  = chk2.cell(row=2, column=4).value
+        v_date   = chk2.cell(row=2, column=5).value
+        v_bond   = chk2.cell(row=2, column=6).value
+        v_name   = chk2.cell(row=2, column=2).value
+
+        ok("[실기입] 전용면적이 float 타입", isinstance(v_area, float), type(v_area))
+        ok("[실기입] 전용면적 값 정확", v_area == 84.98, v_area)
+        ok("[실기입] 분양대금이 int 타입", isinstance(v_price, int), type(v_price))
+        ok("[실기입] 분양대금 콤마 제거됨", v_price == 1850000000, v_price)
+        ok("[실기입] 승계일이 date 타입 (str 아님!)",
+           isinstance(v_date, _date) and not isinstance(v_date, str), type(v_date))
+        # openpyxl 은 Excel 날짜를 항상 datetime 으로 반환(date 의 서브클래스) —
+        # 연/월/일만 비교 (datetime == date 비교는 타입이 달라 항상 False)
+        ok("[실기입] 승계일 값 정확",
+           (v_date.year, v_date.month, v_date.day) == (2024, 6, 15), v_date)
+        ok("[실기입] 채권최고액 int 유지", isinstance(v_bond, int) and v_bond == 960000000)
+        ok("[실기입] 성명은 문자열", isinstance(v_name, str) and v_name == "이서준")
+    finally:
+        mp_path2.unlink(missing_ok=True)
+
+    # 13-3. 동/호 매칭 모드(_key_match, _write_cell 경로)도 동일 검증
+    #      실제 사무소 매핑(검단롯데캐슬넥스티엘_기초입력)처럼 전용면적이
+    #      _amount_columns 에 없는 구성 — 스키마 타입에만 의존해야 통과.
+    wb3 = _oxl.Workbook()
+    wsx3 = wb3.active
+    wsx3.title = "기본명단(키매치테스트)"
+    tmpl3 = os.path.join(tmpdir2, "tmpl3.xlsx")
+    wb3.save(tmpl3)
+
+    mp3 = {
+        "_info": {"사무소명": "_키매치테스트", "템플릿": "tmpl3.xlsx",
+                   "시트명": "기본명단(키매치테스트)", "헤더행": 1, "데이터시작행": 2},
+        "_columns": {"동": 1, "호": 2, "성명": 3, "전용면적": 4,
+                      "초본발급일": 5, "분양대금": 6},
+        "_amount_columns": [6],  # 분양대금만 명시. 전용면적·날짜는 스키마 판단.
+        "_key_match": {"동": 1, "호": 2},
+        "_key_column": 3,
+    }
+    mp_path3 = MAPPINGS_DIR / "_키매치테스트.json"
+    mp_path3.write_text(_json.dumps(mp3, ensure_ascii=False), encoding="utf-8")
+    try:
+        out3 = os.path.join(tmpdir2, "out3.xlsx")
+        rec3 = {"동": "104", "호": "2302", "성명": "박영희",
+                "전용면적": "59.9806", "초본발급일": "2024-07-01",
+                "분양대금": "980,000,000"}
+        write_with_mapping(tmpl3, [rec3], "_키매치테스트", out3)
+
+        chk3 = _oxl.load_workbook(out3)["기본명단(키매치테스트)"]
+        v_area3  = chk3.cell(row=2, column=4).value
+        v_date3  = chk3.cell(row=2, column=5).value
+        v_price3 = chk3.cell(row=2, column=6).value
+
+        ok("[key_match] 전용면적 float", isinstance(v_area3, float) and v_area3 == 59.9806,
+           (type(v_area3), v_area3))
+        ok("[key_match] 초본발급일 date (str 아님)",
+           isinstance(v_date3, _date) and not isinstance(v_date3, str), type(v_date3))
+        ok("[key_match] 분양대금 int", isinstance(v_price3, int) and v_price3 == 980000000)
+    finally:
+        mp_path3.unlink(missing_ok=True)
+
+except Exception as e:
+    print(f"  [ERROR] {e}")
+    traceback.print_exc()
+
+
+# ══════════════════════════════════════════════════════════════
 # 결과 요약
 # ══════════════════════════════════════════════════════════════
 print(f"\n{'='*60}")

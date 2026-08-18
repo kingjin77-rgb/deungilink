@@ -8,24 +8,23 @@ from pathlib import Path
 from copy import copy
 import openpyxl
 
+from core.schema import to_excel_value
+
 MAPPINGS_DIR = Path(__file__).parent.parent / "mappings"
 
 
 # ─── 매핑 파일 목록 ───────────────────────────────────────────────────────────
 
-def _write_cell(ws, row, col, val, is_amount=False):
-    """셀에 값 쓰기 (날짜 변환 포함)"""
-    from datetime import date, datetime
-    import re
-    if isinstance(val, str):
-        # 날짜 변환
-        m = re.match(r"(\d{4})-(\d{2})-(\d{2})$", val)
-        if m:
-            try:
-                val = date(int(m.group(1)),int(m.group(2)),int(m.group(3)))
-            except ValueError:
-                pass
-    ws.cell(row=row, column=col).value = val
+def _write_cell(ws, row, col, val, is_amount=False, field: str = None):
+    """
+    셀에 값 쓰기 — 필드 타입(schema.to_excel_value)에 맞춰 실제 파이썬
+    타입(int/float/date)으로 변환 후 기입한다.
+    is_amount=True 이면(매핑 _amount_columns 지정) 필드 타입과 무관하게
+    숫자로 강제 변환한다.
+    """
+    from core.schema import to_excel_value
+    force = "int" if is_amount else None
+    ws.cell(row=row, column=col).value = to_excel_value(field, val, force_type=force)
 
 
 def _clear_data_rows(ws, data_start: int, formula_cols: set = None):
@@ -218,7 +217,7 @@ def write_with_mapping(template_path: str, records: list[dict],
                 cell = ws.cell(row=row, column=col_idx)
                 if isinstance(cell.value, str) and cell.value.startswith("="):
                     continue
-                _write_cell(ws, row, col_idx, val, col_idx in amount_cols)
+                _write_cell(ws, row, col_idx, val, col_idx in amount_cols, field=field)
 
         _atomic_save(wb, output_path)
         print(f"✅ [{사무소명}] 저장 완료: {output_path}  ({len(records)}건)")
@@ -246,7 +245,9 @@ def write_with_mapping(template_path: str, records: list[dict],
         if serial_col:
             ws.cell(row=row, column=serial_col).value = last_serial + i + 1
 
-        # 데이터 입력
+        # 데이터 입력 — 필드 타입에 맞춰 실제 파이썬 타입(int/float/date)으로
+        # 변환해서 기입한다. (예전엔 금액열이 아니면 무조건 str() 강제 →
+        # 날짜·면적 등이 텍스트로 들어가 다운스트림 수식이 깨지던 버그)
         for field, col_idx in col_map.items():
             if field in ("연번",):
                 continue
@@ -254,13 +255,8 @@ def write_with_mapping(template_path: str, records: list[dict],
             if value is None or value == "":
                 continue
             cell = ws.cell(row=row, column=col_idx)
-            if col_idx in amount_cols:
-                try:
-                    cell.value = int(str(value).replace(",", "")) if value else 0
-                except:
-                    cell.value = value
-            else:
-                cell.value = str(value) if value is not None else ""
+            force = "int" if col_idx in amount_cols else None
+            cell.value = to_excel_value(field, value, force_type=force)
 
     # 저장 전 기본명단 시트를 활성(첫 화면)으로 설정
     try:
