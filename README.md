@@ -101,18 +101,41 @@ export JL_REGISTRY_SECRET="발급한_비밀키"       #  Mac/Linux
 
 ### GUI 실행 (권장)
 ```bash
-python main.py --gui
+python main.py
+```
+(라이선스 인증 후 tkinter 대시보드가 열립니다. `main.py` 는 인자를 받지 않습니다 —
+배치 처리는 아래 `engine_cli.py` 를 사용하세요.)
+
+### CLI - 개별등기 1세대
+```bash
+python engine_cli.py individual "C:\서류\104동2302호" --type 분양
 ```
 
-### CLI - 단일 세대
+### CLI - 집단등기 전체 세대 일괄처리
 ```bash
-python main.py --folder "C:\서류\104동2302호" --output 기본명단.xlsx
+python engine_cli.py group "C:\서류\잠실르엘" ^
+    --mapping 법무법인제이엘 --out 기본명단.xlsx --append --workers 5
 ```
 
-### CLI - 전체 세대 일괄처리
+---
+
+## 📦 exe 빌드 (배포용)
+
+`빌드.bat` 더블클릭 → `dist\JL_Registry_Auto\` 폴더에 실행파일 생성.
+
+수동 빌드:
 ```bash
-python main.py --root "C:\서류\잠실르엘" --output 기본명단.xlsx --workers 5
+pip install pyinstaller
+pyinstaller JL_Registry_Auto.spec
 ```
+
+배포 시 주의:
+- **폴더 전체**를 배포해야 합니다(`JL_Registry_Auto.exe` 파일 하나만으로는 동작 안 함).
+- 빌드에는 `config.ini` 가 **빈 템플릿**(`deploy_assets/config.ini`)으로 포함됩니다.
+  배포 후 `_internal\config.ini` 를 열어 실제 API 키를 입력해야 합니다.
+- 대상 PC에도 `JL_REGISTRY_SECRET` 환경변수 설정이 필요합니다(5번 항목 참고).
+- 세율표(`data/rates_2026.json`)는 exe 안에 함께 포함됩니다. 법령 개정 시
+  `_internal\data\rates_2026.json` 파일을 새 값으로 교체하면 재빌드 없이 반영됩니다.
 
 ---
 
