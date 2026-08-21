@@ -1082,8 +1082,13 @@ class RegistryApp(tk.Tk):
         엔진표시 = {"pdfplumber":"PDF","Clova":"Clova","Tesseract":"Tess",
                    "Claude":"AI","ClovaOCR+Claude":"Clova+AI",
                    "Clova+Claude":"Clova+AI","Tesseract+Claude":"Tess+AI"}.get(엔진, 엔진[:6] if 엔진 else "")
+        경고 = r.get("_경고", "")
         if 오류:
             tag, 상태 = "err", f"오류·{엔진표시}" if 엔진표시 else "오류"
+        elif 경고:
+            # AI 판독 실패 후 로컬 폴백 등 — 값이 비어있을 수 있으므로
+            # 절대 초록 "완료"로 표시하지 않는다.
+            tag, 상태 = "warn", f"부분·{엔진표시}" if 엔진표시 else "부분완료"
         elif 미비:
             tag, 상태 = "warn", f"미비·{엔진표시}" if 엔진표시 else "미비"
         else:
@@ -1096,8 +1101,11 @@ class RegistryApp(tk.Tk):
     def _update_cards(self):
         rs = [r for r in self._results if r]
         self._c_total.config(text=str(len(rs)))
-        self._c_ok.config(text=str(sum(1 for r in rs if not r.get("미비서류") and not r.get("_오류"))))
-        self._c_warn.config(text=str(sum(1 for r in rs if r.get("미비서류"))))
+        self._c_ok.config(text=str(sum(1 for r in rs
+                                       if not r.get("미비서류") and not r.get("_오류")
+                                       and not r.get("_경고"))))
+        self._c_warn.config(text=str(sum(1 for r in rs
+                                         if r.get("미비서류") or r.get("_경고"))))
         self._c_err.config(text=str(sum(1 for r in rs if r.get("_오류"))))
 
     def _finish(self):
@@ -1107,13 +1115,18 @@ class RegistryApp(tk.Tk):
         valid = [r for r in self._results if r and not r.get("_오류")]
         self._save_btn.config(state="normal")  # 항상 활성화
         total = len([r for r in self._results if r])
-        ok    = sum(1 for r in self._results if r and not r.get("미비서류") and not r.get("_오류"))
-        warn  = sum(1 for r in self._results if r and r.get("미비서류"))
+        ok    = sum(1 for r in self._results
+                    if r and not r.get("미비서류") and not r.get("_오류") and not r.get("_경고"))
+        warn  = sum(1 for r in self._results if r and (r.get("미비서류") or r.get("_경고")))
         err   = sum(1 for r in self._results if r and r.get("_오류"))
-        self._status.set(f"✅ 완료  총 {total}건  |  완료 {ok}  미비 {warn}  오류 {err}")
+        self._status.set(f"✅ 완료  총 {total}건  |  완료 {ok}  검토필요 {warn}  오류 {err}")
+        추가안내 = ""
+        if err:
+            추가안내 = f"\n\n※ 오류 {err}건은 엑셀 저장에서 제외됩니다."
         messagebox.showinfo("처리 완료",
                             f"총 {total}건 처리 완료\n\n✅ 완료: {ok}건\n"
-                            f"⚠  미비: {warn}건\n❌ 오류: {err}건\n\n"
+                            f"⚠  검토필요: {warn}건\n❌ 오류: {err}건"
+                            f"{추가안내}\n\n"
                             f"'기본명단 저장' 버튼으로 엑셀 저장하세요.")
 
     def _stop(self):
@@ -1172,7 +1185,15 @@ class RegistryApp(tk.Tk):
                                append=existed, backup=existed)
 
             # 저장 완료 → 엑셀 바로 열기 (팝업 없음)
-            self._status.set(f"✅ 저장 완료 ({len(valid)}건) — {out_p.name}")
+            제외 = len([r for r in self._results if r]) - len(valid)
+            검토 = sum(1 for r in valid if r.get("미비서류") or r.get("_경고"))
+            부가 = []
+            if 제외:
+                부가.append(f"오류 {제외}건 제외")
+            if 검토:
+                부가.append(f"검토필요 {검토}건 포함")
+            꼬리 = f"  ({', '.join(부가)})" if 부가 else ""
+            self._status.set(f"✅ 저장 완료 ({len(valid)}건){꼬리} — {out_p.name}")
             self._save_btn.config(state="normal")  # 재저장 가능하게 유지
 
             # 엑셀 자동 실행

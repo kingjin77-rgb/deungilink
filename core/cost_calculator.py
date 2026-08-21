@@ -171,13 +171,14 @@ def calc_등기비용(record: dict) -> dict:
     """
     소유권이전 + 근저당설정 전체 등기비용 계산
     """
-    # 기본 데이터
-    과표       = int(record.get("취득세과표", 0) or 0)
-    기준시가    = int(record.get("기준시가", 0) or 0)
-    채권최고액  = int(record.get("채권최고액", 0) or 0)
-    전용면적    = float(str(record.get("전용면적", 0) or 0))
+    # 기본 데이터 — 추출값이 문자열(변환 실패로 원본 보존된 경우)이어도
+    # 세대 전체가 오류행이 되지 않도록 안전 변환한다.
+    과표       = _safe_int(record.get("취득세과표"))
+    기준시가    = _safe_int(record.get("기준시가"))
+    채권최고액  = _safe_int(record.get("채권최고액"))
+    전용면적    = _safe_float(record.get("전용면적"))
     아파트유형  = record.get("아파트유형", "분양")  # "분양" | "분양전환"
-    취득세합계  = int(record.get("취득세합계", 0) or 0)
+    취득세합계  = _safe_int(record.get("취득세합계"))
 
     result = {}
 
@@ -253,6 +254,34 @@ def calc_등기비용(record: dict) -> dict:
 
 
 # ─── 유틸 ────────────────────────────────────────────────────────────────────
+
+def _safe_int(v) -> int:
+    """숫자/콤마문자열/None 모두 안전하게 int 로. 실패 시 0."""
+    if v is None or v == "":
+        return 0
+    if isinstance(v, bool):
+        return int(v)
+    if isinstance(v, (int, float)):
+        return int(v)
+    try:
+        import re as _re
+        cleaned = _re.sub(r"[^\d\-]", "", str(v))
+        return int(cleaned) if cleaned not in ("", "-") else 0
+    except (ValueError, TypeError):
+        return 0
+
+
+def _safe_float(v) -> float:
+    """면적 등 소수값을 안전하게 float 로. 실패 시 0.0."""
+    if v is None or v == "":
+        return 0.0
+    if isinstance(v, (int, float)):
+        return float(v)
+    try:
+        return float(str(v).replace(",", "").strip())
+    except (ValueError, TypeError):
+        return 0.0
+
 
 def _round10(v: float) -> int:
     return int(v // 10) * 10

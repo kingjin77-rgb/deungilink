@@ -103,4 +103,17 @@ def merge_documents(records: list) -> dict:
         if best_val is not None:
             merged[field] = best_val
 
+    # ── 서류별 실패 승격 ────────────────────────────────────────────────
+    # 위 루프는 '_' 로 시작하는 키를 전부 버린다. 그러나 개별 서류의 OCR/추출
+    # 실패(_오류)까지 버리면, 5개 PDF 중 3개가 실패해도 세대 레코드에는 아무
+    # 흔적이 없어 "완료"로 표시된다. 실패 사실만은 반드시 위로 올린다.
+    서류오류 = []
+    for r in records:
+        err = r.get("_오류")
+        if err:
+            파일 = r.get("_파일명") or r.get("doc_type") or "서류"
+            서류오류.append(f"{파일}: {str(err)[:80]}")
+    if 서류오류:
+        merged["_서류오류"] = 서류오류
+
     return merged

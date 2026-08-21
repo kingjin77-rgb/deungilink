@@ -76,6 +76,13 @@ def merge_unit_records(records: list[dict]) -> dict:
     미비 = check_missing_docs(found_types, has_loan, has_succession, succession_type)
     merged["미비서류"] = "" if 미비 == "없음" else 미비
 
+    # 개별 서류 판독 실패를 미비서류에 합류 — 실무자가 엑셀에서 바로 보게 한다.
+    서류오류 = merged.pop("_서류오류", None)
+    if 서류오류:
+        마커 = f"⚠판독실패 {len(서류오류)}건"
+        merged["미비서류"] = f"{마커}, {merged['미비서류']}" if merged["미비서류"] else 마커
+        merged["_경고"] = "; ".join(서류오류)[:300]
+
     # 근저당 없으면 대출 관련 공란
     if not merged.get("채권최고액"):
         for f in ["대출은행", "대출지점", "채권최고액", "근저당설정계약일"]:
@@ -594,10 +601,22 @@ def _process_combined_pdf(pdf_path: str, ai_mode: str = "balanced") -> dict:
 
     except Exception as e:
         err_str = str(e)
-        # 크레딧 부족(400) → 조용히 로컬 결과 사용
         is_credit_err = "credit" in err_str.lower() or "balance" in err_str.lower()
-        if not is_credit_err and not local_data:
-            result["_오류"] = err_str[:300]
+        사유 = "API 크레딧 부족" if is_credit_err else err_str[:200]
+
+        if local_data:
+            # 로컬 OCR 폴백 결과는 쓰되, AI 판독이 실패했다는 사실을 반드시 남긴다.
+            # (예전에는 여기서 아무 흔적도 남기지 않아 GUI가 초록 "완료"로 표시하고
+            #  그대로 엑셀에 저장되어, 값이 비어있는 명단을 완료로 오인하게 만들었다)
+            result["_경고"] = f"AI추출실패(로컬결과사용): {사유}"
+            result["_엔진"] = result.get("_엔진") or "로컬OCR(폴백)"
+            # 엑셀 미비서류 칸까지 경고가 도달해야 실무자가 검토할 수 있다.
+            기존미비 = result.get("미비서류", "")
+            마커 = "⚠검토필요(AI판독실패)"
+            result["미비서류"] = f"{마커} {기존미비}".strip() if 기존미비 else 마커
+        else:
+            # 로컬 폴백도 실패 → 진짜 오류
+            result["_오류"] = 사유[:300]
 
     # 성명힌트 최종 보완 (Claude/로컬 모두)
     if 성명힌트 and not result.get("성명", "").strip():
@@ -788,10 +807,10 @@ JSON만 출력. 없으면 빈 문자열. 금액 숫자만. 날짜 YYYY-MM-DD.
         is_credit_err = "credit" in err_str.lower() or "balance" in err_str.lower()
         if is_credit_err:
             # 크레딧 부족 → 로컬 추출 시도
-            _, local_data = _local_extract_bunyang(pdf_path)
+            engine, local_data = _local_extract_bunyang(pdf_path)
             if local_data:
                 result.update(local_data)
-                result["_엔진"] = local_data.get("_엔진", engine if engine else "로컬OCR") if hasattr(local_data, 'get') else "로컬OCR"
+                result["_엔진"] = local_data.get("_엔진", engine if engine else "로컬OCR")
                 result["_상태"] = "완료(로컬)"
             else:
                 result["_오류"] = "API 크레딧 부족"
