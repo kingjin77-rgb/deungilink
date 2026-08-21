@@ -835,9 +835,11 @@ class RegistryApp(tk.Tk):
         self.after(300, self._show_license_info)
 
     def _open_common_file(self):
-        """공통파일 관리 다이얼로그 열기"""
-        사무소 = self._사무소.get().strip()
-        CommonFileDialog(self, 사무소명=사무소 if 사무소 else None)
+        """공통파일 관리 다이얼로그 열기 (준비 중 — 크래시 방지 처리)"""
+        messagebox.showinfo(
+            "공통파일 관리",
+            "공통파일 관리 기능은 준비 중입니다.\n\n"
+            "현재는 각 단지 매핑(⚙ 매핑 관리)에서 템플릿을 지정해 사용하세요.")
 
     def _show_license_info(self):
         try:
@@ -1080,8 +1082,13 @@ class RegistryApp(tk.Tk):
         엔진표시 = {"pdfplumber":"PDF","Clova":"Clova","Tesseract":"Tess",
                    "Claude":"AI","ClovaOCR+Claude":"Clova+AI",
                    "Clova+Claude":"Clova+AI","Tesseract+Claude":"Tess+AI"}.get(엔진, 엔진[:6] if 엔진 else "")
+        경고 = r.get("_경고", "")
         if 오류:
             tag, 상태 = "err", f"오류·{엔진표시}" if 엔진표시 else "오류"
+        elif 경고:
+            # AI 판독 실패 후 로컬 폴백 등 — 값이 비어있을 수 있으므로
+            # 절대 초록 "완료"로 표시하지 않는다.
+            tag, 상태 = "warn", f"부분·{엔진표시}" if 엔진표시 else "부분완료"
         elif 미비:
             tag, 상태 = "warn", f"미비·{엔진표시}" if 엔진표시 else "미비"
         else:
@@ -1094,8 +1101,11 @@ class RegistryApp(tk.Tk):
     def _update_cards(self):
         rs = [r for r in self._results if r]
         self._c_total.config(text=str(len(rs)))
-        self._c_ok.config(text=str(sum(1 for r in rs if not r.get("미비서류") and not r.get("_오류"))))
-        self._c_warn.config(text=str(sum(1 for r in rs if r.get("미비서류"))))
+        self._c_ok.config(text=str(sum(1 for r in rs
+                                       if not r.get("미비서류") and not r.get("_오류")
+                                       and not r.get("_경고"))))
+        self._c_warn.config(text=str(sum(1 for r in rs
+                                         if r.get("미비서류") or r.get("_경고"))))
         self._c_err.config(text=str(sum(1 for r in rs if r.get("_오류"))))
 
     def _finish(self):
@@ -1105,13 +1115,18 @@ class RegistryApp(tk.Tk):
         valid = [r for r in self._results if r and not r.get("_오류")]
         self._save_btn.config(state="normal")  # 항상 활성화
         total = len([r for r in self._results if r])
-        ok    = sum(1 for r in self._results if r and not r.get("미비서류") and not r.get("_오류"))
-        warn  = sum(1 for r in self._results if r and r.get("미비서류"))
+        ok    = sum(1 for r in self._results
+                    if r and not r.get("미비서류") and not r.get("_오류") and not r.get("_경고"))
+        warn  = sum(1 for r in self._results if r and (r.get("미비서류") or r.get("_경고")))
         err   = sum(1 for r in self._results if r and r.get("_오류"))
-        self._status.set(f"✅ 완료  총 {total}건  |  완료 {ok}  미비 {warn}  오류 {err}")
+        self._status.set(f"✅ 완료  총 {total}건  |  완료 {ok}  검토필요 {warn}  오류 {err}")
+        추가안내 = ""
+        if err:
+            추가안내 = f"\n\n※ 오류 {err}건은 엑셀 저장에서 제외됩니다."
         messagebox.showinfo("처리 완료",
                             f"총 {total}건 처리 완료\n\n✅ 완료: {ok}건\n"
-                            f"⚠  미비: {warn}건\n❌ 오류: {err}건\n\n"
+                            f"⚠  검토필요: {warn}건\n❌ 오류: {err}건"
+                            f"{추가안내}\n\n"
                             f"'기본명단 저장' 버튼으로 엑셀 저장하세요.")
 
     def _stop(self):
@@ -1152,9 +1167,10 @@ class RegistryApp(tk.Tk):
             if not out_path:
                 return
 
-            # 기존 파일 없으면 템플릿 복사, 있으면 그대로 이어쓰기
+            # 기존 파일 없으면 템플릿 복사(새로쓰기), 있으면 이어쓰기
             out_p = Path(out_path)
-            if not out_p.exists():
+            existed = out_p.exists()
+            if not existed:
                 if not template or not Path(template).exists():
                     messagebox.showerror("오류", "기본명단 템플릿 파일을 먼저 선택해주세요.")
                     return
@@ -1163,11 +1179,21 @@ class RegistryApp(tk.Tk):
             else:
                 self._status.set(f"기존 파일 이어쓰기: {out_p.name}")
 
-            # 데이터 입력
-            write_with_mapping(out_path, valid, 사무소)
+            # 데이터 입력 — 기존 파일이면 진짜 이어쓰기(+백업), 새 파일이면 새로쓰기
+            write_with_mapping(out_path, valid, 사무소,
+                               output_path=out_path,
+                               append=existed, backup=existed)
 
             # 저장 완료 → 엑셀 바로 열기 (팝업 없음)
-            self._status.set(f"✅ 저장 완료 ({len(valid)}건) — {out_p.name}")
+            제외 = len([r for r in self._results if r]) - len(valid)
+            검토 = sum(1 for r in valid if r.get("미비서류") or r.get("_경고"))
+            부가 = []
+            if 제외:
+                부가.append(f"오류 {제외}건 제외")
+            if 검토:
+                부가.append(f"검토필요 {검토}건 포함")
+            꼬리 = f"  ({', '.join(부가)})" if 부가 else ""
+            self._status.set(f"✅ 저장 완료 ({len(valid)}건){꼬리} — {out_p.name}")
             self._save_btn.config(state="normal")  # 재저장 가능하게 유지
 
             # 엑셀 자동 실행
@@ -1265,12 +1291,6 @@ class RegistryApp(tk.Tk):
 
         threading.Thread(target=_run, daemon=True).start()
 
-    def _save_daejikwon(self):
-        """대지권 등기부등본 OCR → 주소명단 독립 처리 다이얼로그"""
-        DaejikwonDialog(self)
-
-    # ── 대지권 처리 다이얼로그 ────────────────────────────────────────────────
-
     def _send_chat(self):
         """사용자 채팅 입력 → 사무원 채팅창에 표시"""
         try:
@@ -1290,16 +1310,14 @@ class RegistryApp(tk.Tk):
     def _ai_chat_reply(self, question: str):
         """Claude API 실제 응답"""
         try:
-            import anthropic, configparser
-            from pathlib import Path as _Path
-            cfg = configparser.ConfigParser()
-            cfg.read(str(_Path(__file__).parent / "config.ini"), encoding="utf-8")
-            key = cfg.get("claude","api_key",fallback="") or cfg.get("api","api_key",fallback="")
-            if not key or "여기에" in key:
+            import anthropic
+            from core.appconfig import get_api_key, get_model
+            key = get_api_key()
+            if not key:
                 raise ValueError("API 키 없음")
             client = anthropic.Anthropic(api_key=key)
             r = client.messages.create(
-                model="claude-opus-4-5", max_tokens=300,
+                model=get_model(), max_tokens=300,
                 system="당신은 집단등기 자동화 시스템 AI입니다. 한국어로 간결하게 답하세요.",
                 messages=[{"role":"user","content":question}]
             )

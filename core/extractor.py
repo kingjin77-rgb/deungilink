@@ -15,6 +15,13 @@ def clean_amount(s: str) -> int:
     except:
         return 0
 
+def _to_float_safe(s) -> "float | str":
+    """면적 등 소수 필드를 float 로 변환. 실패 시 원본 문자열 보존(데이터 유실 방지)."""
+    try:
+        return float(str(s).replace(",", "").strip())
+    except (ValueError, TypeError):
+        return s
+
 def normalize_date(s: str) -> str:
     """날짜 정규화 → YYYY-MM-DD"""
     s = re.sub(r"[년.\s]", "-", s).replace("월", "-").replace("일", "").strip()
@@ -83,21 +90,21 @@ def extract_분양계약서(text: str) -> dict:
         result["동"] = m.group(1)
         result["호"] = m.group(2)
 
-    # 전용면적 (소수점 4자리)
+    # 전용면적 (소수점 4자리) — float 로 반환 (엑셀 기입 시 숫자로 취급되도록)
     m = re.search(r"전용\s*면적\s*[:\s]*([0-9.]+)\s*㎡", text)
     if not m:
         m = re.search(r"([5-9]\d\.[0-9]{4})\s*㎡", text)
     if m:
-        result["전용면적"] = m.group(1)
+        result["전용면적"] = _to_float_safe(m.group(1))
 
     # 대지지분
     m = re.search(r"대지\s*(?:지분|면적)\s*[:\s]*([0-9.]+)\s*㎡", text)
     if not m:
         nums = re.findall(r"(\d{2,3}\.\d{4})", text)
         if len(nums) >= 2:
-            result["대지지분"] = nums[1]
+            result["대지지분"] = _to_float_safe(nums[1])
     else:
-        result["대지지분"] = m.group(1)
+        result["대지지분"] = _to_float_safe(m.group(1))
 
     # 분양계약일 (계약금 납부 기한 직전 날짜)
     m = re.search(r"계약금.*?(\d{4}[.\-년]\s*\d{1,2}[.\-월]\s*\d{1,2})", text, re.S)
@@ -144,6 +151,30 @@ def extract_선택품목계약서(text: str) -> dict:
         m = re.search(r"에어컨[^\n]*?([0-9,]{7,})", text)
     if m:
         result["옵션금액"] = clean_amount(m.group(1))
+
+    return result
+
+
+# ── 발코니확장계약서 (선택품목계약서와 별도로 단독 체결되는 경우) ─────────────
+
+def extract_발코니확장계약서(text: str) -> dict:
+    """
+    분양계약과 별도로 체결되는 발코니 확장공사 전용 계약서.
+    선택품목계약서에 발코니가 포함된 경우와 달리, 이 서류는 발코니
+    확장비용 단독 계약서이므로 계약 총액을 발코니금액으로 매핑한다.
+    """
+    result = {}
+    patterns = [
+        r"발코니\s*확장\s*(?:비용|공사비|대금)[^\n]*?([0-9,]{7,})\s*원?",
+        r"발코니[^\n]*?([0-9,]{7,})\s*원?\s*\(?VAT\s*포함\)?",
+        r"(?:계약\s*금액|총\s*(?:계약)?\s*금액|공급\s*금액)[:\s]*([0-9,]{7,})\s*원?",
+        r"발코니[^\n]*?([0-9,]{7,})",
+    ]
+    for p in patterns:
+        m = re.search(p, text)
+        if m:
+            result["발코니금액"] = clean_amount(m.group(1))
+            break
 
     return result
 
@@ -403,6 +434,44 @@ def extract_주민등록등본(text: str) -> dict:
     return result
 
 
+# ── 가족관계증명서 ────────────────────────────────────────────────────────────
+
+def extract_가족관계증명서(text: str) -> dict:
+    """
+    가족관계증명서 → 대상자(본인) 성명·주민등록번호 추출.
+    상속등기 등에서 상속인 확인용으로 제출되는 서류.
+    """
+    result = {}
+
+    # "본인" 행의 성명 우선 (가족관계증명서 표 첫 행은 대상자 본인)
+    m = re.search(r"본\s*인\s+([가-힣]{2,5})", text)
+    if not m:
+        m = re.search(r"성\s*명\s*[:：]?\s*([가-힣]{2,5})", text)
+    if m:
+        result["성명"] = m.group(1).strip()
+
+    m = re.search(r"(\d{6}[-–]\d{7})", text)
+    if m:
+        result["주민등록번호"] = m.group(1).replace("–", "-")
+
+    return result
+
+
+# ── 위임장 ────────────────────────────────────────────────────────────────────
+
+def extract_위임장(text: str) -> dict:
+    """위임장 → 위임인(본인) 성명 추출. 등기신청을 위임한 당사자 확인용."""
+    result = {}
+
+    m = re.search(r"위\s*임\s*인\s*[:：]?\s*([가-힣]{2,5})", text)
+    if not m:
+        m = re.search(r"성\s*명\s*[:：]?\s*([가-힣]{2,5})", text)
+    if m:
+        result["성명"] = m.group(1).strip()
+
+    return result
+
+
 # ── 증여계약서 ────────────────────────────────────────────────────────────────
 
 def extract_증여계약서(text: str) -> dict:
@@ -569,7 +638,7 @@ def extract_등기부등본(text: str) -> dict:
             except ValueError:
                 pass
     if 건물면적:
-        result["전용면적"] = 건물면적
+        result["전용면적"] = _to_float_safe(건물면적)
 
     # ── 건물등기 접수일자 (소유권이전등기 접수일) ────────────────────────────
     이전_dates = []
@@ -659,10 +728,13 @@ def extract_등기부등본(text: str) -> dict:
 EXTRACTORS = {
     "분양계약서":     extract_분양계약서,
     "선택품목계약서": extract_선택품목계약서,
+    "발코니확장계약서": extract_발코니확장계약서,
     "근저당설정계약서": extract_근저당설정계약서,
     "주민등록초본":   extract_주민등록초본,
     "주민등록등본":   extract_주민등록등본,
     "인감증명서":     extract_인감증명서,
+    "가족관계증명서": extract_가족관계증명서,
+    "위임장":         extract_위임장,
     "증여계약서":     extract_증여계약서,
     "명의변경계약서": extract_명의변경계약서,
     "거래신고필증":   extract_거래신고필증,

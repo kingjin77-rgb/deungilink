@@ -1,20 +1,51 @@
-# 법무법인 등기자동화 시스템 v1.0
-## 잠실르엘 집단등기 자동화 (소유권이전 + 근저당설정)
+# 법무법인 등기자동화 시스템 v2.0
+## 개별 + 집단 등기 자동화 (소유권이전 + 근저당설정)
 
 ---
 
-## 📋 시스템 구성
+## 📋 시스템 구성 (v2 코어)
 
 ```
 registry_auto/
-├── main.py               ← 실행 진입점 (CLI + GUI 선택)
-├── gui.py                ← GUI 대시보드 (tkinter)
-├── config.ini            ← API 키 및 설정
+├── main.py                 ← GUI 진입점 (라이선스 확인 → tkinter)
+├── gui.py                  ← GUI 대시보드
+├── engine_cli.py           ← 통합 CLI (개별/집단, GUI 없이 배치)
+├── auto_run.py             ← 자동실행 (폴더→기본명단 이어쓰기)
+├── config.ini              ← API 키·설정 (config.ini.example 복사)
+├── data/
+│   └── rates_2026.json     ← 세율·법무사 보수표·채권율 (외부화)
 ├── core/
-│   ├── vision_ocr.py     ← Claude Vision API 기반 OCR 엔진
-│   ├── processor.py      ← 세대별 통합 처리 + 병렬처리
-│   └── excel_writer.py   ← 기본명단 Excel 자동 입력
-└── output/               ← 기본명단 출력 폴더
+│   ├── appconfig.py        ← 중앙 설정(API키·모델 ID)
+│   ├── rates.py            ← 세율표 로더
+│   ├── schema.py           ← 서류·세대 통합 스키마
+│   ├── vision_extract.py   ← Claude Vision 구조화 추출 (신 코어)
+│   ├── extractor.py        ← 정규식 추출 (Vision 폴백)
+│   ├── merge.py            ← 신뢰도 우선순위 병합
+│   ├── registry_engine.py  ← 개별+집단 통합 엔진 (개별 = n=1)
+│   ├── tax_calculator.py   ← 취득세 (rates 소비)
+│   ├── cost_calculator.py  ← 등기비용 (rates 소비)
+│   ├── run_logger.py       ← 구조적 실행 로그 (성공/부분/오류)
+│   └── mapping_manager.py  ← 기본명단 Excel 기입 (진짜 이어쓰기)
+├── mappings/               ← 단지별 열 매핑 JSON
+└── output/                 ← 기본명단·실행로그 출력
+```
+
+### v2 핵심 개선
+- **Vision 구조화 추출**: 스캔 PDF를 이미지로 Claude Vision에 전달, 스키마로 서류 분류+추출. 정규식 하드코딩 없이 신규 단지 자동 대응. (API 키 없으면 정규식 폴백)
+- **개별 + 집단 통합**: `registry_engine` 하나로 개별등기(1건)와 집단등기(단지 일괄) 처리.
+- **세율 외부화**: 세율·보수표를 `data/rates_2026.json`으로 분리 → 법령 개정 시 JSON만 수정.
+- **신뢰도 우선순위 병합**: 서류별 신뢰 순위 + Vision confidence로 값 선택.
+- **진짜 이어쓰기**: 기존 명단 보존 + 연번 이어서(덮어쓰기 버그 수정) + 원자적 저장.
+- **구조적 로깅**: 세대별 성공/부분/오류 분류, 실행로그(txt+json).
+
+### 통합 CLI 사용
+```bash
+# 개별등기 1세대 (파일 또는 폴더) — 결과 JSON
+python engine_cli.py individual "서류/104동2302호" --type 분양
+
+# 집단등기 (세대 하위폴더) — 엑셀 이어쓰기 + 실행로그
+python engine_cli.py group "서류/검단웰카운티" \
+    --mapping 검단롯데캐슬넥스티엘 --out 기본명단.xlsx --append --workers 5
 ```
 
 ---
@@ -70,18 +101,41 @@ export JL_REGISTRY_SECRET="발급한_비밀키"       #  Mac/Linux
 
 ### GUI 실행 (권장)
 ```bash
-python main.py --gui
+python main.py
+```
+(라이선스 인증 후 tkinter 대시보드가 열립니다. `main.py` 는 인자를 받지 않습니다 —
+배치 처리는 아래 `engine_cli.py` 를 사용하세요.)
+
+### CLI - 개별등기 1세대
+```bash
+python engine_cli.py individual "C:\서류\104동2302호" --type 분양
 ```
 
-### CLI - 단일 세대
+### CLI - 집단등기 전체 세대 일괄처리
 ```bash
-python main.py --folder "C:\서류\104동2302호" --output 기본명단.xlsx
+python engine_cli.py group "C:\서류\잠실르엘" ^
+    --mapping 법무법인제이엘 --out 기본명단.xlsx --append --workers 5
 ```
 
-### CLI - 전체 세대 일괄처리
+---
+
+## 📦 exe 빌드 (배포용)
+
+`빌드.bat` 더블클릭 → `dist\JL_Registry_Auto\` 폴더에 실행파일 생성.
+
+수동 빌드:
 ```bash
-python main.py --root "C:\서류\잠실르엘" --output 기본명단.xlsx --workers 5
+pip install pyinstaller
+pyinstaller JL_Registry_Auto.spec
 ```
+
+배포 시 주의:
+- **폴더 전체**를 배포해야 합니다(`JL_Registry_Auto.exe` 파일 하나만으로는 동작 안 함).
+- 빌드에는 `config.ini` 가 **빈 템플릿**(`deploy_assets/config.ini`)으로 포함됩니다.
+  배포 후 `_internal\config.ini` 를 열어 실제 API 키를 입력해야 합니다.
+- 대상 PC에도 `JL_REGISTRY_SECRET` 환경변수 설정이 필요합니다(5번 항목 참고).
+- 세율표(`data/rates_2026.json`)는 exe 안에 함께 포함됩니다. 법령 개정 시
+  `_internal\data\rates_2026.json` 파일을 새 값으로 교체하면 재빌드 없이 반영됩니다.
 
 ---
 

@@ -253,7 +253,10 @@ class SettingsDialog(tk.Toplevel):
             if not self._cfg.has_section("claude"):
                 self._cfg.add_section("claude")
             self._cfg.set("claude", "api_key", api_key)
-            self._cfg.set("claude", "model", "claude-opus-4-5")
+            # 모델 ID: 기존 설정이 있으면 보존, 없을 때만 기본값 기록
+            if not self._cfg.get("claude", "model", fallback="").strip():
+                from core.appconfig import DEFAULT_MODEL
+                self._cfg.set("claude", "model", DEFAULT_MODEL)
 
         with open(CONFIG_PATH, "w", encoding="utf-8") as f:
             self._cfg.write(f)

@@ -176,9 +176,15 @@ class TrustDialog(tk.Toplevel):
             self._skip_btn.pack_forget()
         else:
             self._count_lbl.config(text=str(count), fg=C["yellow"])
-            비용 = count * 61_600
+            # 단가는 rates_2026.json 기반 calc_신탁말소 로 산출 (하드코딩 제거)
+            try:
+                from core.cost_calculator import calc_신탁말소
+                건당 = calc_신탁말소(1)["신탁말소비용"]
+            except Exception:
+                건당 = 61_600
+            비용 = count * 건당
             self._count_desc.config(
-                text=f"신탁말소 필요 — 추가비용 약 {비용:,}원 ({count}건 × 61,600원)",
+                text=f"신탁말소 필요 — 추가비용 약 {비용:,}원 ({count}건 × {건당:,}원)",
                 fg=C["yellow"])
             self._status_lbl.config(
                 text=f"⚠  신탁등기 {count}건 감지 — 전체 세대 적용 예정", fg=C["yellow"])

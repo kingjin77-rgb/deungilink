@@ -12,6 +12,8 @@ IF(AND(감면="해당없음",과표>600000000),과표*누진세율,
 
 import math
 
+from core.rates import acquisition
+
 
 def _round_down_10(v: float) -> int:
     """ROUNDDOWN(..., -1) : 10원 단위 절사"""
@@ -19,8 +21,9 @@ def _round_down_10(v: float) -> int:
 
 
 def _누진세율(과표: int) -> float:
-    """ROUND(2*(과표/300000000)-3, 2) / 100"""
-    rate_pct = round(2 * (과표 / 300_000_000) - 3, 2)
+    """ROUND(mult*(과표/div)-sub, n) / 100  — 파라미터는 rates_2026.json"""
+    f = acquisition()["single_home"]["progressive_formula"]
+    rate_pct = round(f["mult"] * (과표 / f["div"]) - f["sub"], f["round_decimals"])
     return rate_pct / 100
 
 
@@ -28,22 +31,29 @@ def calc_취득세_1주택(과표: int, 감면: str) -> int:
     """
     1주택 취득세 — 실무 수식 완전 동일 적용
     감면: "생애최초" | "해당없음" | "" (해당없음과 동일 처리)
+    세율·구간·감면액은 rates_2026.json 에서 로드.
     """
     감면 = 감면 or "해당없음"
+    sh   = acquisition()["single_home"]
+    low  = sh["low_threshold"]     # 6억
+    high = sh["high_threshold"]    # 9억
+    lr   = sh["low_rate"]          # 1%
+    hr   = sh["high_rate"]         # 3%
+    감면액 = acquisition()["first_time_buyer_deduction"]
 
     if 감면 == "생애최초":
-        if 600_000_000 > 과표:                      # 6억 미만
-            세금 = 과표 * 0.01 - 2_000_000
-        elif 900_000_000 < 과표:                     # 9억 초과
-            세금 = 과표 * 0.03 - 2_000_000
+        if low > 과표:                               # 6억 미만
+            세금 = 과표 * lr - 감면액
+        elif high < 과표:                            # 9억 초과
+            세금 = 과표 * hr - 감면액
         else:                                        # 6억~9억 누진
-            세금 = 과표 * _누진세율(과표) - 2_000_000
+            세금 = 과표 * _누진세율(과표) - 감면액
     else:  # 해당없음 (기타 모두 포함)
-        if 과표 < 600_000_000:                       # 6억 미만
-            세금 = 과표 * 0.01
-        elif 과표 > 900_000_000:                     # 9억 초과
-            세금 = 과표 * 0.03
-        elif 과표 > 600_000_000:                     # 6억~9억 누진
+        if 과표 < low:                               # 6억 미만
+            세금 = 과표 * lr
+        elif 과표 > high:                            # 9억 초과
+            세금 = 과표 * hr
+        elif 과표 > low:                             # 6억~9억 누진
             세금 = 과표 * _누진세율(과표)
         else:                                        # 경계값 fallback
             세금 = 과표 * _누진세율(과표)
@@ -51,13 +61,24 @@ def calc_취득세_1주택(과표: int, 감면: str) -> int:
     return _round_down_10(세금)
 
 
-def calc_취득세_다주택(과표: int, 주택수: int) -> int:
-    """2주택(8%), 3주택+(12%) — 조정대상지역"""
-    if 주택수 == 2:
-        세금 = 과표 * 0.08
+def calc_취득세_다주택(과표: int, 주택수: int, 조정대상지역: bool = True) -> int:
+    """
+    다주택 취득세 — rates_2026.json 의 multi_home 세율.
+    조정대상지역=True(기본): 2주택 8%, 3주택+ 12%
+    조정대상지역=False:       2~3주택 8%, 4주택+ 12% (비조정 확장)
+    """
+    mh = acquisition()["multi_home"]
+    if 조정대상지역:
+        rate = mh["adjusted"]["2"] if 주택수 == 2 else mh["adjusted"]["3plus"]
     else:
-        세금 = 과표 * 0.12
-    return _round_down_10(세금)
+        na = mh["non_adjusted"]
+        if 주택수 == 2:
+            rate = na["2"]
+        elif 주택수 == 3:
+            rate = na["3"]
+        else:
+            rate = na["4plus"]
+    return _round_down_10(과표 * rate)
 
 
 def calc_과표(record: dict) -> int:
@@ -93,22 +114,26 @@ def calc_취득세(record: dict) -> dict:
     감면    = record.get("감면여부", "") or "해당없음"
     전용면적 = _float(record.get("전용면적", 0))
 
+    조정대상지역 = record.get("조정대상지역", True)
+    조정대상지역 = True if 조정대상지역 in (None, "") else bool(조정대상지역)
+
     # ── 취득세 ──────────────────────────────────────────
     if 주택수 == 1:
         취득세 = calc_취득세_1주택(과표, 감면)
     else:
-        취득세 = calc_취득세_다주택(과표, 주택수)
+        취득세 = calc_취득세_다주택(과표, 주택수, 조정대상지역)
 
     # ── 감면액 역산 (표시용) ────────────────────────────
     감면액 = 0
     if 감면 == "생애최초" and 주택수 == 1:
-        감면액 = 2_000_000
+        감면액 = acquisition()["first_time_buyer_deduction"]
 
-    # ── 교육세: 취득세 × 20% ────────────────────────────
-    교육세 = _round_down_10(취득세 * 0.2)
+    # ── 교육세: 취득세 × 교육세율 ───────────────────────
+    교육세 = _round_down_10(취득세 * acquisition()["education_tax_rate"])
 
-    # ── 농특세: 85㎡ 이하 비과세, 초과 시 과표×0.2% ────
-    농특세 = 0 if 전용면적 <= 85 else _round_down_10(과표 * 0.002)
+    # ── 농특세: 기준면적 이하 비과세, 초과 시 과표×율 ──
+    _rt = acquisition()["rural_tax"]
+    농특세 = 0 if 전용면적 <= _rt["exempt_area_max"] else _round_down_10(과표 * _rt["rate"])
 
     취득세합계 = 취득세 + 교육세 + 농특세
 

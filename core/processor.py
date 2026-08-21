@@ -43,26 +43,12 @@ def merge_unit_records(records: list[dict]) -> dict:
     - 승계 서류 여러 건: 날짜 최신 1건만
     - 나머지: 필드별 우선순위 + 후순위 덮어쓰기 방식
     """
-    transfer_records = []   # 승계 서류만 별도 수집
-    other_records = []
+    transfer_records = [r for r in records
+                        if r.get("doc_type", "") in TRANSFER_DOC_TYPES]
 
-    for r in records:
-        doc_type = r.get("doc_type", "")
-        if doc_type in TRANSFER_DOC_TYPES:
-            transfer_records.append(r)
-        else:
-            other_records.append(r)
-
-    # 일반 서류 병합 (먼저 들어온 값 보존, 빈 값이면 채움)
-    merged = {}
-    for rec in other_records:
-        for k, v in rec.items():
-            if k.startswith("_"):
-                continue
-            if v in (None, "", 0) and k in merged:
-                continue  # 기존 값 보존
-            if v not in (None, ""):
-                merged[k] = v
+    # 필드별 신뢰도 우선순위 병합 (전체 서류 대상) — core/merge.py
+    from core.merge import merge_documents
+    merged = merge_documents(records)
 
     # ── 승계 횟수 + 유형 자동 분석 ────────────────────────────────────────
     from core.extractor import count_and_classify_successions, detect_succession_type
@@ -89,6 +75,13 @@ def merge_unit_records(records: list[dict]) -> dict:
 
     미비 = check_missing_docs(found_types, has_loan, has_succession, succession_type)
     merged["미비서류"] = "" if 미비 == "없음" else 미비
+
+    # 개별 서류 판독 실패를 미비서류에 합류 — 실무자가 엑셀에서 바로 보게 한다.
+    서류오류 = merged.pop("_서류오류", None)
+    if 서류오류:
+        마커 = f"⚠판독실패 {len(서류오류)}건"
+        merged["미비서류"] = f"{마커}, {merged['미비서류']}" if merged["미비서류"] else 마커
+        merged["_경고"] = "; ".join(서류오류)[:300]
 
     # 근저당 없으면 대출 관련 공란
     if not merged.get("채권최고액"):
@@ -608,186 +601,26 @@ def _process_combined_pdf(pdf_path: str, ai_mode: str = "balanced") -> dict:
 
     except Exception as e:
         err_str = str(e)
-        # 크레딧 부족(400) → 조용히 로컬 결과 사용
         is_credit_err = "credit" in err_str.lower() or "balance" in err_str.lower()
-        if not is_credit_err and not local_data:
-            result["_오류"] = err_str[:300]
+        사유 = "API 크레딧 부족" if is_credit_err else err_str[:200]
+
+        if local_data:
+            # 로컬 OCR 폴백 결과는 쓰되, AI 판독이 실패했다는 사실을 반드시 남긴다.
+            # (예전에는 여기서 아무 흔적도 남기지 않아 GUI가 초록 "완료"로 표시하고
+            #  그대로 엑셀에 저장되어, 값이 비어있는 명단을 완료로 오인하게 만들었다)
+            result["_경고"] = f"AI추출실패(로컬결과사용): {사유}"
+            result["_엔진"] = result.get("_엔진") or "로컬OCR(폴백)"
+            # 엑셀 미비서류 칸까지 경고가 도달해야 실무자가 검토할 수 있다.
+            기존미비 = result.get("미비서류", "")
+            마커 = "⚠검토필요(AI판독실패)"
+            result["미비서류"] = f"{마커} {기존미비}".strip() if 기존미비 else 마커
+        else:
+            # 로컬 폴백도 실패 → 진짜 오류
+            result["_오류"] = 사유[:300]
 
     # 성명힌트 최종 보완 (Claude/로컬 모두)
     if 성명힌트 and not result.get("성명", "").strip():
         result["성명"] = 성명힌트
-
-    return result
-
-    p = Path(pdf_path)
-    result = {"_세대": p.stem, "_파일명": p.name}
-
-    try:
-        cfg = configparser.ConfigParser()
-        cfg.read(str(_P(__file__).parent.parent / "config.ini"), encoding="utf-8")
-        key   = cfg.get("claude","api_key",fallback="") or cfg.get("api","api_key",fallback="")
-        model = cfg.get("claude","model",fallback="claude-sonnet-4-6")
-        if not key:
-            raise ValueError("API 키 없음")
-
-        # ── 파일명에서 힌트 추출 ─────────────────────────────────────
-        # 예: "1-603_이재북.pdf" → 세대코드="1-603", 성명힌트="이재북"
-        stem = p.stem  # "1-603_이재북"
-        parts = stem.split("_", 1)
-        세대코드    = parts[0] if parts else stem        # "1-603"
-        성명힌트    = parts[1] if len(parts) > 1 else "" # "이재북"
-
-        # ── PDF를 base64로 읽기 (Document API용) ─────────────────────
-        with open(pdf_path, "rb") as f:
-            pdf_b64 = base64.standard_b64encode(f.read()).decode()
-
-        # ── 프롬프트 구성 ──────────────────────────────────────────────
-        hint_text = f"[파일 정보]\n파일명: {p.name}\n세대코드: {세대코드}"
-        if 성명힌트:
-            hint_text += f"\n수분양자 성명 힌트: '{성명힌트}' — 이 이름이 서류에 있는지 반드시 확인하세요."
-        hint_text += "\n\n"
-
-        prompt = hint_text + """이 분양아파트 서류 묶음에서 정보를 추출하여 아래 JSON 형식으로만 답하세요.
-절대 마크다운, 설명, 코드블록 없이 JSON만 출력하세요.
-없으면 빈 문자열(""). 금액은 숫자만(쉼표/원 제거). 날짜는 YYYY-MM-DD.
-
-[추출 규칙 — 반드시 준수]
-1. 성명: 수분양자(을, 공급받는자)의 이름. 파일명 힌트와 서류 서명을 교차 확인.
-2. 동/호: 공급계약서 상단의 동·호수만. (예: 9101동 603호 → 동=9101, 호=603)
-3. 분양대금: 공급계약서의 "총 공급금액"(대지비+건축비 합산, 4억~8억원대).
-   발코니확장/선택품목/중도금 금액과 절대 혼동 금지.
-4. 부가세: 공급계약서의 "건물부가세"만 (분양대금의 약 10%).
-5. 발코니금액: 발코니확장계약서의 "총 공급금액"만 (수백만~천만원).
-6. 옵션금액: 선택품목계약서의 최종 "합계"만 (수백만~수천만원).
-7. 채권최고액: 근저당권설정계약서의 "채권 최고액" 항목 금액만 (수천만~수억원).
-   계좌번호(11~14자리 숫자)·주민등록번호와 혼동 금지. 10자리 이상이면 빈 문자열.
-8. 주소: 주민등록초본의 현주소 마지막 행(이하 여백 직전).
-9. 초본발급일: 주민등록표(초본)의 발급일.
-10. 인감발급일: 인감증명서의 발급일.
-11. 계약일: 공급계약서(분양계약서)의 계약일만. 전입일·중도금기일과 혼동 금지.
-
-{"동":"","호":"","성명":"","주민등록번호":"","전화번호":"","전화번호2":"","주소":"","전용면적":"","대지지분":"","분양계약일":"","분양대금":"","부가세":"","발코니금액":"","옵션금액":"","프리미엄":"","거래가액":"","실거래일련번호":"","승계여부":"해당없음","승계일":"","초본발급일":"","인감발급일":"","대출은행":"","대출지점":"","대출은행2":"","대출지점2":"","채권최고액":"","채권최고액2":"","근저당설정계약일":"","개별공동":"개별","서류목록":""}"""
-
-        content = [
-            # ★ 이미지 변환 없이 PDF 원본을 Document API로 직접 전송
-            {
-                "type": "document",
-                "source": {
-                    "type": "base64",
-                    "media_type": "application/pdf",
-                    "data": pdf_b64
-                }
-            },
-            {"type": "text", "text": prompt}
-        ]
-
-        client = anthropic.Anthropic(api_key=key)
-        r = client.messages.create(
-            model=model,
-            max_tokens=4000,  # 1500 → 4000으로 증가
-            messages=[{"role": "user", "content": content}]
-        )
-        raw = r.content[0].text.strip()
-
-        # JSON 파싱
-        raw = re.sub(r"```(?:json)?", "", raw).replace("```", "").strip()
-        try:
-            data = json.loads(raw)
-        except:
-            m = re.search(r"\{[\s\S]+\}", raw)
-            data = json.loads(m.group(0)) if m else {}
-
-        # 마크다운·레이블 제거
-        for k, v in list(data.items()):
-            if isinstance(v, str):
-                v = re.sub(r"\*+|#+|_{2,}", "", v).strip()
-                v = re.sub(r"^[가-힣A-Za-z]+[:：]\s*", "", v).strip()
-                data[k] = v
-
-        # 금액 숫자 정리
-        for f in ["분양대금","부가세","발코니금액","옵션금액","프리미엄",
-                  "거래가액","채권최고액","채권최고액2"]:
-            if f in data:
-                data[f] = re.sub(r"[,원\s]", "", str(data[f]))
-
-        # ── 이상값 검증 ──────────────────────────────────────────────
-        # 채권최고액: 10자리 이상 → 계좌번호이므로 제거
-        for f in ["채권최고액", "채권최고액2"]:
-            v = str(data.get(f, "")).strip()
-            if v and v.isdigit() and len(v) >= 10:
-                data[f] = ""
-
-        # 분양대금: 5천만~15억 범위 아닌 경우 공란 (발코니/옵션 혼동 방지)
-        try:
-            pd_val = int(data.get("분양대금", 0) or 0)
-            if pd_val > 0 and (pd_val < 50_000_000 or pd_val > 1_500_000_000):
-                data["분양대금"] = ""
-                data["부가세"] = ""
-        except:
-            pass
-
-        # 부가세: 분양대금의 0.1%~15% 범위 아니면 공란
-        try:
-            pd_val  = int(data.get("분양대금", 0) or 0)
-            vat_val = int(data.get("부가세", 0) or 0)
-            if pd_val > 0 and vat_val > 0:
-                ratio = vat_val / pd_val
-                if ratio > 0.15 or ratio < 0.001:
-                    data["부가세"] = ""
-        except:
-            pass
-
-        # 거래가액: 분양대금보다 10배 이상 크면 단위 오류 → 10으로 나누기
-        try:
-            pd_val = int(data.get("분양대금", 0) or 0)
-            ga_val = int(data.get("거래가액", 0) or 0)
-            if pd_val > 0 and ga_val > pd_val * 5:
-                data["거래가액"] = str(ga_val // 10)
-        except:
-            pass
-
-        # 호수: 앞 0 제거
-        if "호" in data:
-            data["호"] = str(data["호"]).lstrip("0") or str(data.get("호", ""))
-
-        # 파일명 힌트로 성명 보완 (OCR이 공란으로 남긴 경우)
-        if 성명힌트 and not data.get("성명", "").strip():
-            data["성명"] = 성명힌트
-
-        result.update(data)
-
-        # ── 미비서류 자동 계산 ────────────────────────────────────────
-        from core.extractor import check_missing_docs
-        found_docs_raw = data.get("서류목록", "")
-        doc_keywords = {
-            "분양계약서":       ["공급계약서", "분양계약서"],
-            "주민등록초본":     ["주민등록표", "초본", "등본"],
-            "인감증명서":       ["인감증명서"],
-            "근저당설정계약서": ["근저당권설정계약서", "근저당설정"],
-            "선택품목계약서":   ["선택품목계약서"],
-            "발코니확장계약서": ["발코니확장계약서"],
-            "가족관계증명서":   ["가족관계증명서"],
-            "위임장":           ["위임장"],
-            "운전면허증":       ["운전면허증"],
-            "증여계약서":       ["증여계약서"],
-            "명의변경계약서":   ["명의변경계약서"],
-            "거래신고필증":     ["거래신고필증"],
-        }
-        found_types = [
-            doc_type for doc_type, keywords in doc_keywords.items()
-            if any(kw in found_docs_raw for kw in keywords)
-        ]
-        has_loan       = bool(data.get("채권최고액", ""))
-        승계여부        = data.get("승계여부", "")
-        has_succession  = bool(승계여부 and 승계여부 not in ("", "해당없음"))
-        succession_type = "증여" if "증여" in 승계여부 else "매매"
-
-        미비 = check_missing_docs(found_types, has_loan, has_succession, succession_type)
-        result["미비서류"]   = "" if 미비 == "없음" else 미비
-        result["_처리서류"]  = found_types
-
-    except Exception as e:
-        result["_오류"] = str(e)[:200]
 
     return result
 
@@ -974,10 +807,10 @@ JSON만 출력. 없으면 빈 문자열. 금액 숫자만. 날짜 YYYY-MM-DD.
         is_credit_err = "credit" in err_str.lower() or "balance" in err_str.lower()
         if is_credit_err:
             # 크레딧 부족 → 로컬 추출 시도
-            _, local_data = _local_extract_bunyang(pdf_path)
+            engine, local_data = _local_extract_bunyang(pdf_path)
             if local_data:
                 result.update(local_data)
-                result["_엔진"] = local_data.get("_엔진", engine if engine else "로컬OCR") if hasattr(local_data, 'get') else "로컬OCR"
+                result["_엔진"] = local_data.get("_엔진", engine if engine else "로컬OCR")
                 result["_상태"] = "완료(로컬)"
             else:
                 result["_오류"] = "API 크레딧 부족"
