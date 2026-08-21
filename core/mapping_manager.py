@@ -15,6 +15,68 @@ MAPPINGS_DIR = Path(__file__).parent.parent / "mappings"
 
 # ─── 매핑 파일 목록 ───────────────────────────────────────────────────────────
 
+# ── 필드명 별칭 ──────────────────────────────────────────────────────────────
+#  같은 항목을 사무소마다 다르게 부른다. 실제 매핑 파일 기준:
+#    초본/인감            → 검단롯데캐슬넥스티엘, 남양주 자연앤이편한세상3차
+#    초본발급일/인감발급일 → 검단롯데캐슬넥스티엘_기초입력
+#    초본발행일/인감발행일 → 법무법인제이엘, 한예라_남양주
+#  추출기는 이 중 일부만 만들기 때문에, 예전에는 표기가 다른 사무소의
+#  초본·인감 열이 **영구히 빈칸**이었다. 기입 직전에 별칭을 해석해
+#  어느 표기를 쓰든 값이 채워지도록 한다.
+FIELD_ALIASES = {
+    "초본발행일": ["초본발급일", "초본"],
+    "초본발급일": ["초본발행일", "초본"],
+    "초본":       ["초본발행일", "초본발급일"],
+    "인감발행일": ["인감발급일", "인감"],
+    "인감발급일": ["인감발행일", "인감"],
+    "인감":       ["인감발행일", "인감발급일"],
+    "등본발행일": ["등본발급일", "등본"],
+    "등본발급일": ["등본발행일", "등본"],
+    "등본":       ["등본발행일", "등본발급일"],
+    "거래신고필증번호": ["실거래일련번호"],
+    "실거래일련번호":   ["거래신고필증번호"],
+    "전용면적": ["건물면적"],
+    "대지지분": ["대지권면적"],
+}
+
+
+def _resolve_value(record: dict, field: str):
+    """매핑이 요구하는 필드명으로 값을 찾되, 없으면 알려진 별칭으로 재시도."""
+    v = record.get(field)
+    if v not in (None, ""):
+        return v
+    for alt in FIELD_ALIASES.get(field, ()):
+        v = record.get(alt)
+        if v not in (None, ""):
+            return v
+    return None
+
+
+def _is_formula_cell(cell) -> bool:
+    """
+    셀이 수식인지 판정.
+    일반 수식은 '=' 로 시작하는 str 이지만, 배열수식/데이터테이블은
+    openpyxl 이 ArrayFormula / DataTableFormula 객체로 반환하므로
+    str 검사만으로는 놓쳐 수식을 덮어쓰게 된다. 두 경우 모두 잡는다.
+    """
+    v = cell.value
+    if isinstance(v, str):
+        return v.startswith("=")
+    if v is None:
+        return False
+    # ArrayFormula / DataTableFormula 등 openpyxl 수식 객체
+    return type(v).__name__ in ("ArrayFormula", "DataTableFormula")
+
+
+def _is_writable(cell) -> bool:
+    """
+    병합셀의 비-좌상단 셀(MergedCell)은 value 대입 시 AttributeError 를 던진다.
+    write_with_mapping 에는 try/except 가 없어 그 한 번으로 저장 전체가 실패하고
+    한 건도 저장되지 않는다. 미리 걸러낸다.
+    """
+    return type(cell).__name__ != "MergedCell"
+
+
 def _write_cell(ws, row, col, val, is_amount=False, field: str = None):
     """
     셀에 값 쓰기 — 필드 타입(schema.to_excel_value)에 맞춰 실제 파이썬
@@ -27,31 +89,62 @@ def _write_cell(ws, row, col, val, is_amount=False, field: str = None):
     ws.cell(row=row, column=col).value = to_excel_value(field, val, force_type=force)
 
 
-def _clear_data_rows(ws, data_start: int, formula_cols: set = None):
+def _clear_data_rows(ws, data_start: int, formula_cols: set = None,
+                     preserve_cols: set = None, target_cols: set = None,
+                     key_col: int = None, max_scan: int = 20000):
     """
-    데이터 시작행부터 마지막 데이터행까지 비수식 셀을 클리어.
-    수식(=로 시작)과 formula_cols는 보존.
-    중복 저장 방지 목적.
+    새로쓰기 전 기존 데이터를 비운다.
+
+    이전 구현의 3가지 치명적 결함을 수정:
+    1) 매핑에 없는 열까지 전부 삭제했다. 실제 템플릿은 열이 200개가 넘어
+       (template.xlsx 는 223열) 사무장이 손으로 적어둔 메모·특이사항·
+       담당자 등 **매핑 밖 모든 수기 입력이 소리 없이 증발**했다.
+       → target_cols(매핑이 실제로 쓰는 열)로 삭제 범위를 한정한다.
+    2) 중간에 빈 행(또는 수식만 있는 행)을 만나면 break 해서, 그 아래
+       지난번 명단 잔해가 그대로 남았다. 수식이 미리 깔린 템플릿에서는
+       거의 항상 발생한다.
+       → break 하지 않고 연속 빈 행이 충분히 이어질 때만 종료한다.
+    3) data_start+1000 상한 때문에 1000세대 초과 단지는 아래가 안 지워졌다.
+       → max_scan 으로 넉넉히 확장(기본 20000행).
+
+    preserve_cols 도 이제 실제로 전달받아 보존한다.
     """
-    formula_cols = formula_cols or set()
-    for r in range(data_start, min(ws.max_row + 1, data_start + 1000)):
-        # 이 행에 데이터가 있는지 확인
+    formula_cols  = formula_cols or set()
+    preserve_cols = preserve_cols or set()
+    보호 = formula_cols | preserve_cols
+
+    # 삭제 대상 열: 매핑이 쓰는 열만. 지정 없으면 (구 동작 호환) 전체.
+    if target_cols:
+        대상열 = [c for c in sorted(target_cols) if c not in 보호]
+    else:
+        대상열 = [c for c in range(1, ws.max_column + 1) if c not in 보호]
+
+    검사열 = [key_col] if key_col else list(range(1, min(ws.max_column, 40) + 1))
+
+    끝행 = min(ws.max_row, data_start + max_scan)
+    연속빈행 = 0
+    for r in range(data_start, 끝행 + 1):
+        # 이 행에 '실데이터'(수식 아닌 값)가 있는지 — 검사열만 훑어 성능 확보
         row_has_data = False
-        for c in range(1, ws.max_column + 1):
+        for c in 검사열:
             cell = ws.cell(r, c)
-            if cell.value is not None and cell.value != "":
-                if not (isinstance(cell.value, str) and cell.value.startswith("=")):
-                    row_has_data = True
-                    break
+            v = cell.value
+            if v is not None and v != "" and not _is_formula_cell(cell):
+                row_has_data = True
+                break
+
         if not row_has_data:
-            break  # 빈 행이면 그 이하도 비어있으므로 종료
-        # 비수식 셀만 클리어
-        for c in range(1, ws.max_column + 1):
-            if c in formula_cols:
-                continue
+            연속빈행 += 1
+            # 충분히 이어지면 그 아래는 비었다고 보고 종료 (중간 빈 행 1~2줄은 통과)
+            if 연속빈행 >= 50:
+                break
+            continue
+        연속빈행 = 0
+
+        for c in 대상열:
             cell = ws.cell(r, c)
-            if isinstance(cell.value, str) and cell.value.startswith("="):
-                continue  # 수식 보존
+            if _is_formula_cell(cell) or not _is_writable(cell):
+                continue   # 수식(배열수식 포함) / 병합셀 보존
             cell.value = None
 
 
@@ -119,17 +212,38 @@ def _make_backup(path: str):
     return str(bak)
 
 
+def _unit_key(dong, ho) -> tuple:
+    """
+    동/호 매칭 키 정규화.
+    엑셀에 숫자 603 으로 저장돼 있고 추출값이 "0603" 또는 603.0 이면
+    문자열 비교가 어긋나 같은 세대가 새 행으로 중복 추가된다.
+    앞 0 제거 + float 정수화로 표기 차이를 흡수한다.
+    """
+    def norm(v):
+        s = str(v).strip()
+        if s.endswith(".0"):        # 603.0 → 603
+            s = s[:-2]
+        s2 = s.lstrip("0")          # 0603 → 603
+        return s2 if s2 else s
+    return (norm(dong), norm(ho))
+
+
 def _index_existing_units(ws, dong_col: int, ho_col: int, data_start: int) -> dict:
     """기존 행을 스캔해 (동,호) → 행번호 인덱스 구성 (이어쓰기 upsert용)."""
     idx = {}
-    r = data_start
-    max_row = min(ws.max_row, 1048575)
-    while r <= max_row:
+    # ws.max_row 가 104만으로 잡히는 템플릿이 흔하므로 상한/조기종료 필수
+    max_row = min(ws.max_row, data_start + _SCAN_LIMIT)
+    빈행 = 0
+    for r in range(data_start, max_row + 1):
         dv = ws.cell(row=r, column=dong_col).value
         hv = ws.cell(row=r, column=ho_col).value
         if dv not in (None, "") and hv not in (None, ""):
-            idx[(str(dv).strip(), str(hv).strip())] = r
-        r += 1
+            idx[_unit_key(dv, hv)] = r
+            빈행 = 0
+        else:
+            빈행 += 1
+            if 빈행 >= _EMPTY_RUN_STOP:
+                break
     return idx
 
 
@@ -161,18 +275,31 @@ def write_with_mapping(template_path: str, records: list[dict],
 
     wb = openpyxl.load_workbook(load_path)
 
-    # 시트 찾기 (정확한 이름 → 부분일치 → active 순서)
+    # ── 시트 찾기 ────────────────────────────────────────────────────
+    # 예전에는 못 찾으면 wb.active 로 폴백했다. 그 결과 사용자가 다른
+    # 통합문서를 고르면 마지막에 열려 있던 아무 시트(예: "우리", "수임표")에
+    # 32개 열 데이터를 그대로 써서 원본을 되돌릴 수 없게 훼손했다.
+    # → 폴백을 없애고, 못 찾으면 명확한 오류로 중단한다.
     sheet_name = info.get("시트명", "")
     ws = None
     if sheet_name and sheet_name in wb.sheetnames:
         ws = wb[sheet_name]
     if ws is None:
-        for s in wb.sheetnames:
-            if "기본명단" in s:
-                ws = wb[s]
-                break
+        후보 = [s for s in wb.sheetnames if "기본명단" in s]
+        if len(후보) == 1:
+            ws = wb[후보[0]]
+        elif len(후보) > 1:
+            raise ValueError(
+                f"[{사무소명}] 어느 시트에 기입할지 확정할 수 없습니다.\n"
+                f"'기본명단'이 들어간 시트가 여러 개입니다: {후보}\n"
+                f"매핑의 _info.시트명 을 정확히 지정하세요.")
     if ws is None:
-        ws = wb.active
+        raise ValueError(
+            f"[{사무소명}] 기입할 시트를 찾지 못했습니다.\n"
+            f"매핑이 기대한 시트명: '{sheet_name or '(미지정)'}'\n"
+            f"이 파일의 시트 목록: {wb.sheetnames}\n"
+            f"→ 올바른 기본명단 파일인지 확인하거나, 매핑의 _info.시트명 을 "
+            f"이 파일의 실제 시트명으로 수정하세요.")
 
     print(f"  📋 입력 시트: [{ws.title}]  (모드: {'이어쓰기' if append else '새로쓰기'})")
 
@@ -192,8 +319,11 @@ def write_with_mapping(template_path: str, records: list[dict],
             # 기존 데이터 보존 + 기존 동/호 인덱스 구성 (upsert)
             row_index = _index_existing_units(ws, dong_col, ho_col, data_start)
         else:
-            # 새로쓰기: 기존 데이터 클리어
-            _clear_data_rows(ws, data_start, formula_cols)
+            # 새로쓰기: 기존 데이터 클리어 (매핑이 쓰는 열만, 수식·보존열 제외)
+            _clear_data_rows(ws, data_start, formula_cols,
+                             preserve_cols=preserve_cols,
+                             target_cols=set(col_map.values()) | {dong_col, ho_col},
+                             key_col=dong_col or None)
             row_index = {}
 
         for record in records:
@@ -201,21 +331,22 @@ def write_with_mapping(template_path: str, records: list[dict],
             ho   = str(record.get("호", "")).strip()
             if not dong or not ho:
                 continue
-            row = row_index.get((dong, ho))
+            키 = _unit_key(dong, ho)
+            row = row_index.get(키)
             if not row:
                 row = _find_next_row(ws, dong_col, data_start)
                 ws.cell(row=row, column=dong_col).value = dong
                 ws.cell(row=row, column=ho_col).value = ho
-                row_index[(dong, ho)] = row
+                row_index[키] = row
 
             for field, col_idx in col_map.items():
                 if col_idx in formula_cols or col_idx in preserve_cols:
                     continue
-                val = record.get(field)
+                val = _resolve_value(record, field)
                 if val is None or val == "":
                     continue
                 cell = ws.cell(row=row, column=col_idx)
-                if isinstance(cell.value, str) and cell.value.startswith("="):
+                if _is_formula_cell(cell) or not _is_writable(cell):
                     continue
                 _write_cell(ws, row, col_idx, val, col_idx in amount_cols, field=field)
 
@@ -229,8 +360,11 @@ def write_with_mapping(template_path: str, records: list[dict],
         start_row   = _find_next_row(ws, serial_col or key_col, data_start)
         last_serial = _get_last_serial(ws, serial_col, data_start) if serial_col else 0
     else:
-        # 새로쓰기: 기존 데이터 클리어
-        _clear_data_rows(ws, data_start, formula_cols)
+        # 새로쓰기: 기존 데이터 클리어 (매핑이 쓰는 열만, 수식·보존열 제외)
+        _clear_data_rows(ws, data_start, formula_cols,
+                         preserve_cols=preserve_cols,
+                         target_cols=set(col_map.values()),
+                         key_col=(key_col if key_col else None))
         start_row   = data_start
         last_serial = 0
 
@@ -241,20 +375,33 @@ def write_with_mapping(template_path: str, records: list[dict],
         ref_row = start_row - 1 if start_row > data_start else data_start
         _copy_style(ws, ref_row, row)
 
-        # 연번 — 기존 마지막 연번 이어서 채번
-        if serial_col:
+        # 연번 — 기존 마지막 연번 이어서 채번.
+        # last_serial == -1 이면 연번 열이 수식(=ROW()-1 등)이므로 손대지 않는다.
+        if (serial_col and last_serial >= 0
+                and serial_col not in formula_cols
+                and serial_col not in preserve_cols
+                and not _is_formula_cell(ws.cell(row=row, column=serial_col))):
             ws.cell(row=row, column=serial_col).value = last_serial + i + 1
 
         # 데이터 입력 — 필드 타입에 맞춰 실제 파이썬 타입(int/float/date)으로
         # 변환해서 기입한다. (예전엔 금액열이 아니면 무조건 str() 강제 →
         # 날짜·면적 등이 텍스트로 들어가 다운스트림 수식이 깨지던 버그)
+        #
+        # ★ 수식 보호: 예전 순차 모드에는 이 보호가 아예 없어서, 템플릿에
+        #   미리 깔린 조회 수식(예: 전용면적/대지지분/거래가액을 '주택' 시트에서
+        #   INDEX/MATCH 로 끌어오는 열)을 값으로 덮어써 영구 파괴했다.
+        #   key_match 모드에만 있던 보호를 순차 모드에도 동일 적용한다.
         for field, col_idx in col_map.items():
             if field in ("연번",):
                 continue
-            value = record.get(field)
+            if col_idx in formula_cols or col_idx in preserve_cols:
+                continue
+            value = _resolve_value(record, field)
             if value is None or value == "":
                 continue
             cell = ws.cell(row=row, column=col_idx)
+            if _is_formula_cell(cell) or not _is_writable(cell):
+                continue   # 템플릿 수식 / 병합셀 보존
             force = "int" if col_idx in amount_cols else None
             cell.value = to_excel_value(field, value, force_type=force)
 
@@ -272,28 +419,67 @@ def write_with_mapping(template_path: str, records: list[dict],
     return output_path
 
 
+#  실제 템플릿에는 ws.max_row 가 1,048,576 으로 잡히는 잔재 행이 흔하다
+#  (template.xlsx 실측: max_row=1048576). 전 범위를 훑으면 셀 객체가 수백만 개
+#  생성되어 저장이 사실상 멈춘다. 아래 상한/조기종료로 방어한다.
+_SCAN_LIMIT = 20000       # 최대 스캔 행 (2만 세대까지 충분)
+_EMPTY_RUN_STOP = 50      # 연속 빈 행이 이만큼이면 그 아래는 비었다고 판단
+
+
 def _find_next_row(ws, key_col: int, start: int) -> int:
-    """마지막 데이터 행 다음 행 반환"""
+    """
+    마지막 데이터 행 다음 행 반환.
+    수식 셀은 '데이터'로 보지 않는다 — 템플릿에 수식만 미리 깔린 행을
+    데이터로 오인하면 명단이 엉뚱하게 아래에서 시작된다.
+    """
     last = start - 1
-    max_row = min(ws.max_row, 1048575)
+    max_row = min(ws.max_row, start + _SCAN_LIMIT)
+    빈행 = 0
     for row in range(start, max_row + 1):
-        val = ws.cell(row=row, column=key_col).value
-        if val not in (None, ""):
+        cell = ws.cell(row=row, column=key_col)
+        v = cell.value
+        if v not in (None, "") and not _is_formula_cell(cell):
             last = row
+            빈행 = 0
+        else:
+            빈행 += 1
+            if 빈행 >= _EMPTY_RUN_STOP:
+                break
     return last + 1
 
 
 def _get_last_serial(ws, serial_col: int, start: int) -> int:
-    """기존 파일의 마지막 연번 반환 (없으면 0)"""
+    """
+    기존 파일의 마지막 연번 반환 (없으면 0).
+
+    주의: 연번 열이 수식(예: =ROW()-1)이면 셀 값은 문자열이라 int() 가 실패해
+    0 이 되고, 이어쓰기 시 1,2,3... 으로 **기존 연번과 중복**된다.
+    이 경우 연번은 수식이 스스로 계산하므로 채번 자체를 건너뛰도록
+    -1 (=채번 불필요) 을 돌려준다.
+    """
     last = 0
-    max_row = min(ws.max_row, 1048575)
+    max_row = min(ws.max_row, start + _SCAN_LIMIT)
+    빈행 = 0
+    수식발견 = False
     for row in range(start, max_row + 1):
-        val = ws.cell(row=row, column=serial_col).value
+        cell = ws.cell(row=row, column=serial_col)
+        val = cell.value
+        if _is_formula_cell(cell):
+            수식발견 = True
+            빈행 = 0
+            continue
+        if val in (None, ""):
+            빈행 += 1
+            if 빈행 >= _EMPTY_RUN_STOP:
+                break
+            continue
+        빈행 = 0
         try:
-            n = int(val)
-            last = max(last, n)
+            last = max(last, int(val))
         except (TypeError, ValueError):
             pass
+    if 수식발견 and last == 0:
+        return -1     # 연번 열이 수식 → 직접 채번하지 않음
     return last
 
 

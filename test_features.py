@@ -937,6 +937,127 @@ except Exception as e:
 
 
 # ══════════════════════════════════════════════════════════════
+# 16. 엑셀 기입 안전성 (수식 보존 / 시트 오탐 / 별칭 / 수기메모)
+# ══════════════════════════════════════════════════════════════
+section("16. 수식 보존 · 시트 확정 · 필드별칭 · 수기메모 보존")
+try:
+    import openpyxl as _o
+    from core.mapping_manager import (write_with_mapping, MAPPINGS_DIR,
+                                        _resolve_value, _unit_key,
+                                        _is_formula_cell)
+
+    td = tempfile.mkdtemp()
+
+    # ── 16-1. 순차 모드에서 템플릿 수식이 보존되는가 (최우선 회귀방지) ──
+    # 실제 template_nj.xlsx 는 전용면적/대지지분/거래가액 열이 INDEX/MATCH
+    # 수식이다. 예전 순차 모드는 이걸 값으로 덮어써 영구 파괴했다.
+    wb = _o.Workbook(); ws = wb.active; ws.title = "기본명단(수식)"
+    for i, h in enumerate(["연번", "성명", "전용면적", "메모"], start=1):
+        ws.cell(row=1, column=i, value=h)
+    # 2~3행 전용면적(3열)에 조회 수식 미리 배치 + 4열에 사무장 수기메모
+    for r in (2, 3):
+        ws.cell(row=r, column=3, value=f'=IF(B{r}="","",VLOOKUP(B{r},주택!A:G,7,FALSE))')
+        ws.cell(row=r, column=4, value=f"수기메모{r}")
+    t1 = os.path.join(td, "t1.xlsx"); wb.save(t1)
+
+    mp = {"_info": {"사무소명": "_수식보존", "템플릿": "t1.xlsx",
+                     "시트명": "기본명단(수식)", "헤더행": 1, "데이터시작행": 2},
+          "_columns": {"연번": 1, "성명": 2, "전용면적": 3},
+          "_amount_columns": [], "_key_column": 2}
+    p1 = MAPPINGS_DIR / "_수식보존.json"
+    p1.write_text(_json.dumps(mp, ensure_ascii=False), encoding="utf-8")
+    try:
+        o1 = os.path.join(td, "o1.xlsx")
+        write_with_mapping(t1, [{"성명": "홍길동", "전용면적": "84.98"},
+                                 {"성명": "김철수", "전용면적": "59.99"}],
+                           "_수식보존", o1)
+        c = _o.load_workbook(o1)["기본명단(수식)"]
+        v_formula = c.cell(row=2, column=3).value
+        ok("[치명] 템플릿 수식이 덮어써지지 않음",
+           isinstance(v_formula, str) and v_formula.startswith("="), v_formula)
+        ok("[치명] 매핑 밖 수기메모가 보존됨",
+           c.cell(row=2, column=4).value == "수기메모2", c.cell(row=2, column=4).value)
+        ok("수식 없는 열은 정상 기입", c.cell(row=2, column=2).value == "홍길동")
+    finally:
+        p1.unlink(missing_ok=True)
+
+    # ── 16-2. 시트를 못 찾으면 조용히 엉뚱한 시트에 쓰지 않고 오류 ──
+    wb2 = _o.Workbook(); wb2.active.title = "우리은행"
+    wb2.create_sheet("수임표")
+    t2 = os.path.join(td, "t2.xlsx"); wb2.save(t2)
+    mp2 = {"_info": {"사무소명": "_시트없음", "템플릿": "t2.xlsx",
+                      "시트명": "롯데캐슬넥스티엘(APT)", "데이터시작행": 2},
+           "_columns": {"성명": 1}, "_amount_columns": [], "_key_column": 1}
+    p2 = MAPPINGS_DIR / "_시트없음.json"
+    p2.write_text(_json.dumps(mp2, ensure_ascii=False), encoding="utf-8")
+    try:
+        o2 = os.path.join(td, "o2.xlsx")
+        raised = False
+        try:
+            write_with_mapping(t2, [{"성명": "홍길동"}], "_시트없음", o2)
+        except ValueError as ve:
+            raised = True
+            msg = str(ve)
+        ok("[치명] 시트 미발견 시 wb.active 폴백 대신 오류", raised)
+        ok("오류 메시지에 실제 시트목록 안내", raised and "우리은행" in msg)
+        # 엉뚱한 시트가 훼손되지 않았는지
+        if os.path.exists(o2):
+            chk = _o.load_workbook(o2)
+            ok("엉뚱한 시트에 기입 안 됨", chk["우리은행"].cell(row=2, column=1).value is None)
+        else:
+            ok("엉뚱한 시트에 기입 안 됨", True, "출력파일 자체가 생성되지 않음")
+    finally:
+        p2.unlink(missing_ok=True)
+
+    # ── 16-3. 필드명 별칭 해석 (초본/인감/등본 3종 표기) ──
+    ok("초본 별칭: 발행일→짧은표기",
+       _resolve_value({"초본발행일": "2024-06-15"}, "초본") == "2024-06-15")
+    ok("초본 별칭: 짧은표기→발급일",
+       _resolve_value({"초본": "2024-06-15"}, "초본발급일") == "2024-06-15")
+    ok("인감 별칭 해석",
+       _resolve_value({"인감발행일": "2024-06-20"}, "인감발급일") == "2024-06-20")
+    ok("등본 별칭 해석",
+       _resolve_value({"등본발행일": "2024-06-18"}, "등본") == "2024-06-18")
+    ok("거래신고필증 ↔ 실거래일련번호 별칭",
+       _resolve_value({"거래신고필증번호": "2024-123"}, "실거래일련번호") == "2024-123")
+    ok("정확한 이름이 있으면 그것 우선",
+       _resolve_value({"초본": "A", "초본발행일": "B"}, "초본발행일") == "B")
+    ok("없으면 None", _resolve_value({"성명": "홍길동"}, "초본") is None)
+
+    # ── 16-4. 실제 매핑(검단 기초입력 표기)에서 초본/인감 열이 채워지는가 ──
+    wb3 = _o.Workbook(); ws3 = wb3.active; ws3.title = "기본명단(별칭)"
+    t3 = os.path.join(td, "t3.xlsx"); wb3.save(t3)
+    mp3 = {"_info": {"사무소명": "_별칭기입", "템플릿": "t3.xlsx",
+                      "시트명": "기본명단(별칭)", "데이터시작행": 2},
+           "_columns": {"성명": 1, "초본발급일": 2, "인감발급일": 3},
+           "_amount_columns": [], "_key_column": 1}
+    p3 = MAPPINGS_DIR / "_별칭기입.json"
+    p3.write_text(_json.dumps(mp3, ensure_ascii=False), encoding="utf-8")
+    try:
+        o3 = os.path.join(td, "o3.xlsx")
+        # 추출기는 '초본발행일'/'초본'을 만든다 (발급일은 안 만듦)
+        write_with_mapping(t3, [{"성명": "이서준",
+                                  "초본발행일": "2024-06-15", "초본": "2024-06-15",
+                                  "인감발행일": "2024-06-20", "인감": "2024-06-20"}],
+                           "_별칭기입", o3)
+        c3 = _o.load_workbook(o3)["기본명단(별칭)"]
+        ok("[치명] 표기 달라도 초본 열이 채워짐",
+           c3.cell(row=2, column=2).value is not None, c3.cell(row=2, column=2).value)
+        ok("[치명] 표기 달라도 인감 열이 채워짐",
+           c3.cell(row=2, column=3).value is not None, c3.cell(row=2, column=3).value)
+    finally:
+        p3.unlink(missing_ok=True)
+
+    # ── 16-5. 동/호 키 정규화 (중복 행 방지) ──
+    ok("앞 0 제거 정규화", _unit_key("104", "0603") == _unit_key("104", "603"))
+    ok("float 표기 정규화", _unit_key("104", "603.0") == _unit_key("104", "603"))
+
+except Exception as e:
+    print(f"  [ERROR] {e}")
+    traceback.print_exc()
+
+
+# ══════════════════════════════════════════════════════════════
 # 결과 요약
 # ══════════════════════════════════════════════════════════════
 print(f"\n{'='*60}")
